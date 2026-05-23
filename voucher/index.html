@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>মেসার্স অর্পা কনস্ট্রাকশন - ভাউচার</title>
+<title>সাইট ভাউচার</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -183,7 +183,7 @@
     color: var(--muted);
     outline: none;
     padding: 0;
-    margin-right: 6px;
+    margin-right: 4px;
     min-width: 30px;
   }
   .label-input:focus { color: var(--ink); }
@@ -206,7 +206,7 @@
     min-width: 40px;
   }
   .total-row .lbl-input { font-weight: var(--fw-semibold); }
-  .meta-row input {
+  .meta-row input:not(.label-input) {
     border: none;
     border-bottom: 1px dashed var(--line-soft);
     font-family: var(--font-num);
@@ -218,10 +218,10 @@
     color: var(--ink);
     padding: 2px 0;
   }
-  .meta-row input:focus { border-bottom-color: var(--muted); }
+  .meta-row input:not(.label-input):focus { border-bottom-color: var(--muted); }
   .meta-row .left { display: flex; align-items: baseline; gap: 0; }
   .meta-row .right { display: flex; align-items: baseline; gap: 0; }
-  .meta-row #sutro { width: 170px; }
+  .meta-row #sutro { min-width: 170px; }
 
   .site-code-row {
     margin-bottom: 24px;
