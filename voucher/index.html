@@ -353,13 +353,43 @@
        The PDF/PNG render adds .render-desktop class which disables
        these overrides — output uses the full desktop layout. */
     .voucher:not(.render-desktop) input { max-width: 100%; box-sizing: border-box; min-width: 0; }
-    .voucher:not(.render-desktop) .meta-row { gap: 12px; }
+    .voucher:not(.render-desktop) .meta-row {
+      gap: 8px;
+      flex-wrap: nowrap;
+      align-items: center;
+    }
     .voucher:not(.render-desktop) .meta-row .left,
-    .voucher:not(.render-desktop) .meta-row .right { min-width: 0; flex: 1; }
-    .voucher:not(.render-desktop) .meta-row .left input:not(.label-input),
-    .voucher:not(.render-desktop) .meta-row .right input:not(.label-input) { flex: 1; min-width: 0; width: auto; }
-    .voucher:not(.render-desktop) .site-code-row { flex-wrap: nowrap; min-width: 0; }
-    .voucher:not(.render-desktop) .site-code-row input:not(.label-input) { flex: 1; min-width: 0; }
+    .voucher:not(.render-desktop) .meta-row .right {
+      min-width: 0;
+      flex: 1 1 50%;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    .voucher:not(.render-desktop) .meta-row .right { justify-content: flex-end; }
+    .voucher:not(.render-desktop) .meta-row .label-input {
+      flex: 0 0 auto;
+      width: auto;
+      min-width: 0;
+    }
+    .voucher:not(.render-desktop) .meta-row .left input:not(.label-input) {
+      flex: 1 1 auto;
+      min-width: 0;
+      width: auto;
+    }
+    .voucher:not(.render-desktop) .meta-row .right input:not(.label-input) {
+      flex: 0 1 auto;
+      min-width: 0;
+      width: auto;
+    }
+    .voucher:not(.render-desktop) .site-code-row {
+      flex-wrap: nowrap;
+      min-width: 0;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .voucher:not(.render-desktop) .site-code-row .label-input { flex: 0 0 auto; width: auto; }
+    .voucher:not(.render-desktop) .site-code-row input:not(.label-input) { flex: 1 1 auto; min-width: 0; }
     .voucher:not(.render-desktop) .amounts { width: 100%; overflow-x: hidden; }
     .voucher:not(.render-desktop) .amounts table { width: 100%; }
     .voucher:not(.render-desktop) .amounts td.lbl { width: auto; }
