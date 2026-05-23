@@ -183,15 +183,15 @@
     color: var(--muted);
     outline: none;
     padding: 0;
-    margin-right: 8px;
-    width: 70px;
+    margin-right: 6px;
+    min-width: 30px;
   }
   .label-input:focus { color: var(--ink); }
   .site-label-input {
     color: var(--red);
     font-weight: var(--fw-bold);
     font-size: var(--fs-md);
-    width: 110px;
+    min-width: 40px;
   }
   .lbl-input {
     border: none;
@@ -203,8 +203,7 @@
     outline: none;
     padding: 0;
     text-align: right;
-    width: 100%;
-    min-width: 180px;
+    min-width: 40px;
   }
   .total-row .lbl-input { font-weight: var(--fw-semibold); }
   .meta-row input {
@@ -370,32 +369,32 @@
 
   <div class="meta-row">
     <div class="left">
-      <input type="text" class="label label-input" value="সূত্র:" title="বাঁ লেবেল" />
+      <input type="text" class="label label-input auto-size" value="সূত্র:" title="বাঁ লেবেল" />
       <input type="text" id="sutro" value="" title="সূত্র মান" />
     </div>
     <div class="right">
-      <input type="text" class="label label-input" value="তারিখ:" title="ডান লেবেল" />
+      <input type="text" class="label label-input auto-size" value="তারিখ:" title="ডান লেবেল" />
       <input type="text" id="tarikh" title="তারিখ মান" />
     </div>
   </div>
 
   <div class="site-code-row">
-    <input type="text" class="label label-input site-label-input" value="সাইট কোড:" title="সাইট কোড লেবেল" />
+    <input type="text" class="label label-input site-label-input auto-size" value="সাইট কোড:" title="সাইট কোড লেবেল" />
     <input type="text" id="siteCode" value="FNSNG80" title="সাইট কোড মান" />
   </div>
 
   <div class="amounts">
     <table>
       <tr>
-        <td class="lbl"><input type="text" class="lbl-input" value="সাইটের কাজের রেট :" title="রেট লেবেল" /></td>
+        <td class="lbl"><input type="text" class="lbl-input auto-size" value="সাইটের কাজের রেট :" title="রেট লেবেল" /></td>
         <td class="val"><input type="text" id="rate" value="১,২০,০০০/-" title="রেট মান" /></td>
       </tr>
       <tr>
-        <td class="lbl"><input type="text" class="lbl-input" value="সাইট পেমেন্ট :" title="পেমেন্ট লেবেল" /></td>
+        <td class="lbl"><input type="text" class="lbl-input auto-size" value="সাইট পেমেন্ট :" title="পেমেন্ট লেবেল" /></td>
         <td class="val"><input type="text" id="payment" value="১,০০,০০০/-" title="পেমেন্ট মান" /></td>
       </tr>
       <tr class="total-row">
-        <td class="lbl"><input type="text" class="lbl-input" value="মোট পাওনা :" title="মোট পাওনা লেবেল" /></td>
+        <td class="lbl"><input type="text" class="lbl-input auto-size" value="মোট পাওনা :" title="মোট পাওনা লেবেল" /></td>
         <td class="val"><input type="text" id="due" value="২০,০০০/-" title="মোট পাওনা মান" /></td>
       </tr>
     </table>
