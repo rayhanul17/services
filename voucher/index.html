@@ -165,6 +165,25 @@
     padding-top: 10px;
   }
 
+  .hdr-input {
+    border: none;
+    border-bottom: 1px dashed transparent;
+    background: transparent;
+    font-family: inherit;
+    text-align: center;
+    outline: none;
+    color: inherit;
+    font-weight: inherit;
+    font-size: inherit;
+    letter-spacing: inherit;
+    padding: 0;
+  }
+  .hdr-input:focus { border-bottom-color: #888; }
+  .company-input { width: 100%; max-width: 560px; color: #d32f2f; font-size: 38px; font-weight: 700; }
+  .proprietor-input { width: 280px; }
+  .mobile-input { width: 140px; }
+  .address-input { width: 360px; color: #1a4ba0; font-weight: 600; }
+
   .signature-area {
     display: flex;
     justify-content: flex-end;
@@ -195,12 +214,12 @@
 <div class="voucher" id="voucher">
   <div class="header">
     <div class="bismillah">বিসমিল্লাহির রাহমানির রাহিম</div>
-    <div class="company-name">মেসার্স অর্পা কনস্ট্রাকশন</div>
-    <div class="proprietor">প্রোঃ মোঃ আরিফুল ইসলাম</div>
-    <div class="mobile">মোবাইল নং: ০১৭৩১৫০৯৪৮৩</div>
+    <div class="company-name"><input type="text" id="companyName" class="hdr-input company-input" value="মেসার্স অর্পা কনস্ট্রাকশন" title="কোম্পানির নাম" /></div>
+    <div class="proprietor"><input type="text" id="proprietor" class="hdr-input proprietor-input" value="প্রোঃ মোঃ আরিফুল ইসলাম" title="প্রোপ্রাইটর" /></div>
+    <div class="mobile">মোবাইল নং: <input type="text" id="mobile" class="hdr-input mobile-input" value="০১৭৩১৫০৯৪৮৩" title="মোবাইল নাম্বার" /></div>
     <div class="role">ঠিকাদার ও সরবরাহকারী</div>
     <div class="desc">আমরা সকল প্রকার বিল্ডিং নির্মান ও পুনঃনির্মান কাজ কন্ট্রাকের মাধ্যমে নির্ধারিত সময়ে দক্ষ জনবল দ্বারা সম্পন্ন করে থাকি।</div>
-    <div class="address">উত্তর আশরতপুর, তাজহাট, রংপুর।</div>
+    <div class="address"><input type="text" id="address" class="hdr-input address-input" value="উত্তর আশরতপুর, তাজহাট, রংপুর।" title="ঠিকানা" /></div>
   </div>
 
   <hr class="divider" />
@@ -217,7 +236,7 @@
   </div>
 
   <div class="site-code-row">
-    <span class="label">সাইড কোড:</span>
+    <span class="label">সাইট কোড:</span>
     <input type="text" id="siteCode" value="FNSNG80" />
   </div>
 
