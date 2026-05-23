@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>মেসার্স অর্পা কনস্ট্রাকশন - ভাউচার</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+    background: #e9ecef;
+    padding: 20px;
+    min-height: 100vh;
+  }
+  .controls {
+    max-width: 820px;
+    margin: 0 auto 16px;
+    background: #fff;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .controls label { font-weight: 600; font-size: 14px; }
+  .controls input[type="file"] { font-size: 13px; }
+  .controls button {
+    padding: 8px 18px;
+    background: #d32f2f;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    font-family: inherit;
+    font-size: 14px;
+  }
+  .controls button:hover { background: #b71c1c; }
+  .controls button.secondary { background: #555; }
+  .controls button.secondary:hover { background: #333; }
+
+  .voucher {
+    width: 820px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 35px 50px 40px;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    color: #000;
+  }
+
+  .header { text-align: center; }
+  .bismillah { font-size: 15px; margin-bottom: 4px; }
+  .company-name {
+    color: #d32f2f;
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin: 2px 0;
+  }
+  .proprietor {
+    display: inline-block;
+    border: 1.5px solid #d32f2f;
+    border-radius: 30px;
+    padding: 4px 22px;
+    font-size: 15px;
+    font-weight: 500;
+    margin: 6px 0;
+  }
+  .mobile { font-size: 15px; margin-top: 4px; }
+  .role {
+    color: #d32f2f;
+    font-size: 20px;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    margin-top: 6px;
+  }
+  .desc { font-size: 13px; margin-top: 6px; }
+  .address {
+    color: #1a4ba0;
+    font-size: 15px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .divider {
+    border: none;
+    border-top: 1.5px solid #333;
+    margin: 14px 0;
+  }
+
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
+    margin-bottom: 18px;
+  }
+  .meta-row .label { color: #666; margin-right: 6px; }
+  .meta-row input {
+    border: none;
+    border-bottom: 1px dashed #ccc;
+    font-family: inherit;
+    font-size: 15px;
+    background: transparent;
+    outline: none;
+    width: 160px;
+  }
+  .meta-row .right input { text-align: right; }
+
+  .site-code-row {
+    margin-bottom: 50px;
+    font-size: 16px;
+  }
+  .site-code-row .label {
+    color: #d32f2f;
+    font-weight: 700;
+  }
+  .site-code-row input {
+    border: none;
+    border-bottom: 1px dashed #ccc;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    background: transparent;
+    outline: none;
+    width: 200px;
+    margin-left: 6px;
+  }
+
+  .amounts {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0 20px;
+  }
+  .amounts table {
+    border-collapse: collapse;
+    font-size: 17px;
+  }
+  .amounts td {
+    padding: 7px 14px;
+    vertical-align: middle;
+  }
+  .amounts td.lbl { text-align: right; }
+  .amounts td.val {
+    text-align: right;
+    min-width: 140px;
+  }
+  .amounts input {
+    border: none;
+    border-bottom: 1px dashed transparent;
+    background: transparent;
+    font-family: inherit;
+    font-size: 17px;
+    text-align: right;
+    width: 130px;
+    outline: none;
+  }
+  .amounts input:focus { border-bottom-color: #888; }
+  .amounts tr.total-row td {
+    border-top: 1.5px solid #000;
+    padding-top: 10px;
+  }
+
+  .signature-area {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+    padding-right: 30px;
+  }
+  .signature-area img {
+    max-height: 80px;
+    max-width: 180px;
+  }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .controls { display: none; }
+    .voucher { box-shadow: none; border: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <label for="sigUpload">স্বাক্ষর পরিবর্তন (optional):</label>
+  <input type="file" id="sigUpload" accept="image/*" />
+  <button type="button" id="downloadBtn">⬇ Download Voucher (PNG)</button>
+  <button type="button" class="secondary" onclick="window.print()">🖨 Print</button>
+</div>
+
+<div class="voucher" id="voucher">
+  <div class="header">
+    <div class="bismillah">বিসমিল্লাহির রাহমানির রাহিম</div>
+    <div class="company-name">মেসার্স অর্পা কনস্ট্রাকশন</div>
+    <div class="proprietor">প্রোঃ মোঃ আরিফুল ইসলাম</div>
+    <div class="mobile">মোবাইল নং: ০১৭৩১৫০৯৪৮৩</div>
+    <div class="role">ঠিকাদার ও সরবরাহকারী</div>
+    <div class="desc">আমরা সকল প্রকার বিল্ডিং নির্মান ও পুনঃনির্মান কাজ কন্ট্রাকের মাধ্যমে নির্ধারিত সময়ে দক্ষ জনবল দ্বারা সম্পন্ন করে থাকি।</div>
+    <div class="address">উত্তর আশরতপুর, তাজহাট, রংপুর।</div>
+  </div>
+
+  <hr class="divider" />
+
+  <div class="meta-row">
+    <div class="left">
+      <span class="label">সূত্র:</span>
+      <input type="text" id="sutro" value="" />
+    </div>
+    <div class="right">
+      <span class="label">তারিখ:</span>
+      <input type="text" id="tarikh" />
+    </div>
+  </div>
+
+  <div class="site-code-row">
+    <span class="label">সাইড কোড:</span>
+    <input type="text" id="siteCode" value="FNSNG80" />
+  </div>
+
+  <div class="amounts">
+    <table>
+      <tr>
+        <td class="lbl">সাইটের কাজের রেট :</td>
+        <td class="val"><input type="text" id="rate" value="১,২০,০০০/-" /></td>
+      </tr>
+      <tr>
+        <td class="lbl">সাইট পেমেন্ট :</td>
+        <td class="val"><input type="text" id="payment" value="১,০০,০০০/-" /></td>
+      </tr>
+      <tr class="total-row">
+        <td class="lbl">মোট পাওনা :</td>
+        <td class="val"><input type="text" id="due" value="২০,০০০/-" /></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="signature-area">
+    <img id="signature" src="signature.jpeg" alt="স্বাক্ষর" />
+  </div>
+</div>
+
+<script>
+  // Bengali digit conversion
+  const bnDigits = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+  function toBengaliDigits(s) {
+    return String(s).replace(/[0-9]/g, d => bnDigits[+d]);
+  }
+
+  // Set current date in dd/mm/yyyy Bengali
+  (function setToday() {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    document.getElementById('tarikh').value = toBengaliDigits(`${dd}/${mm}/${yyyy}`);
+  })();
+
+  // Signature upload
+  document.getElementById('sigUpload').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      document.getElementById('signature').src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Download as PNG
+  document.getElementById('downloadBtn').addEventListener('click', async () => {
+    const node = document.getElementById('voucher');
+    const btn = document.getElementById('downloadBtn');
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    try {
+      // Replace inputs with spans temporarily for cleaner rendering
+      const inputs = node.querySelectorAll('input');
+      const replacements = [];
+      inputs.forEach(inp => {
+        const span = document.createElement('span');
+        span.textContent = inp.value;
+        span.style.cssText = window.getComputedStyle(inp).cssText;
+        span.style.borderBottom = 'none';
+        span.style.display = 'inline-block';
+        span.style.width = inp.offsetWidth + 'px';
+        span.style.textAlign = inp.style.textAlign || getComputedStyle(inp).textAlign;
+        inp.parentNode.insertBefore(span, inp);
+        inp.style.display = 'none';
+        replacements.push({ inp, span });
+      });
+
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+
+      // Restore inputs
+      replacements.forEach(({ inp, span }) => {
+        inp.style.display = '';
+        span.remove();
+      });
+
+      const link = document.createElement('a');
+      const siteCode = document.getElementById('siteCode').value || 'voucher';
+      link.download = `voucher_${siteCode}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      alert('Download failed: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '⬇ Download Voucher (PNG)';
+    }
+  });
+</script>
+
+</body>
+</html>

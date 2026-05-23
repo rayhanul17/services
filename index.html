@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Services</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f7fa;
+    min-height: 100vh;
+    padding: 40px 20px;
+    color: #222;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 32px; margin-bottom: 8px; }
+  .sub { color: #666; margin-bottom: 32px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    display: block;
+    background: #fff;
+    padding: 22px;
+    border-radius: 10px;
+    border: 1px solid #e3e6eb;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    border-color: #c9d1db;
+  }
+  .card h2 { font-size: 18px; margin-bottom: 6px; }
+  .card p { font-size: 14px; color: #666; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Services</h1>
+  <p class="sub">Collection of independent, hosted utility tools.</p>
+  <div class="grid">
+    <a class="card" href="voucher/">
+      <h2>Voucher</h2>
+      <p>মেসার্স অর্পা কনস্ট্রাকশন — site voucher generator</p>
+    </a>
+  </div>
+</div>
+</body>
+</html>
