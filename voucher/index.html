@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root {
     --font: 'Hind Siliguri', system-ui, sans-serif;
@@ -284,10 +285,11 @@
     max-width: 180px;
   }
 
-  @media print {
-    body { background: #fff; padding: 0; }
-    .controls { display: none; }
-    .voucher { box-shadow: none; border: none; }
+  @media (max-width: 860px) {
+    .voucher { width: 100%; padding: 24px 18px 32px; }
+    .company-input { font-size: 26px; }
+    .controls { flex-direction: column; align-items: stretch; }
+    .controls button { width: 100%; }
   }
 </style>
 </head>
@@ -296,8 +298,8 @@
 <div class="controls">
   <label for="sigUpload">স্বাক্ষর পরিবর্তন (optional):</label>
   <input type="file" id="sigUpload" accept="image/*" />
-  <button type="button" id="downloadBtn">⬇ Download Voucher (PNG)</button>
-  <button type="button" class="secondary" onclick="window.print()">🖨 Print</button>
+  <button type="button" id="downloadPngBtn">⬇ Download PNG</button>
+  <button type="button" id="downloadPdfBtn" class="secondary">⬇ Download PDF</button>
 </div>
 
 <div class="voucher" id="voucher">
@@ -378,52 +380,107 @@
     reader.readAsDataURL(file);
   });
 
-  // Download as PNG
-  document.getElementById('downloadBtn').addEventListener('click', async () => {
+  // Render voucher to canvas at fixed desktop width (so mobile layouts also produce voucher-sized output)
+  async function renderVoucher() {
     const node = document.getElementById('voucher');
-    const btn = document.getElementById('downloadBtn');
-    btn.disabled = true;
-    btn.textContent = 'Generating...';
-    try {
-      // Replace inputs with spans temporarily for cleaner rendering
-      const inputs = node.querySelectorAll('input');
-      const replacements = [];
-      inputs.forEach(inp => {
-        const span = document.createElement('span');
-        span.textContent = inp.value;
-        span.style.cssText = window.getComputedStyle(inp).cssText;
-        span.style.borderBottom = 'none';
-        span.style.display = 'inline-block';
-        span.style.width = inp.offsetWidth + 'px';
-        span.style.textAlign = inp.style.textAlign || getComputedStyle(inp).textAlign;
-        inp.parentNode.insertBefore(span, inp);
-        inp.style.display = 'none';
-        replacements.push({ inp, span });
-      });
 
+    // Force desktop width during capture for consistent voucher size on any device
+    const prevWidth = node.style.width;
+    const prevMaxW = node.style.maxWidth;
+    node.style.width = '820px';
+    node.style.maxWidth = 'none';
+
+    // Replace inputs with spans for cleaner text rendering
+    const inputs = node.querySelectorAll('input');
+    const replacements = [];
+    inputs.forEach(inp => {
+      const span = document.createElement('span');
+      span.textContent = inp.value;
+      const cs = window.getComputedStyle(inp);
+      span.style.cssText = cs.cssText;
+      span.style.borderBottom = 'none';
+      span.style.display = 'inline-block';
+      span.style.width = inp.offsetWidth + 'px';
+      span.style.textAlign = inp.style.textAlign || cs.textAlign;
+      inp.parentNode.insertBefore(span, inp);
+      inp.style.display = 'none';
+      replacements.push({ inp, span });
+    });
+
+    try {
       const canvas = await html2canvas(node, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        width: 820,
+        windowWidth: 820
       });
-
-      // Restore inputs
+      return canvas;
+    } finally {
       replacements.forEach(({ inp, span }) => {
         inp.style.display = '';
         span.remove();
       });
+      node.style.width = prevWidth;
+      node.style.maxWidth = prevMaxW;
+    }
+  }
 
-      const link = document.createElement('a');
-      const siteCode = document.getElementById('siteCode').value || 'voucher';
-      link.download = `voucher_${siteCode}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+  function filename(ext) {
+    const code = document.getElementById('siteCode').value || 'voucher';
+    return `voucher_${code}.${ext}`;
+  }
+
+  async function withBusy(btn, label, fn) {
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = label;
+    try {
+      await fn();
     } catch (err) {
       alert('Download failed: ' + err.message);
     } finally {
       btn.disabled = false;
-      btn.textContent = '⬇ Download Voucher (PNG)';
+      btn.textContent = original;
     }
+  }
+
+  document.getElementById('downloadPngBtn').addEventListener('click', (e) => {
+    withBusy(e.currentTarget, 'Generating...', async () => {
+      const canvas = await renderVoucher();
+      const link = document.createElement('a');
+      link.download = filename('png');
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  });
+
+  document.getElementById('downloadPdfBtn').addEventListener('click', (e) => {
+    withBusy(e.currentTarget, 'Generating...', async () => {
+      const canvas = await renderVoucher();
+      const imgData = canvas.toDataURL('image/png');
+
+      // A4 portrait in mm: 210 x 297. Fit canvas to width with margin.
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const maxW = pageW - margin * 2;
+      const maxH = pageH - margin * 2;
+
+      const ratio = canvas.width / canvas.height;
+      let w = maxW;
+      let h = w / ratio;
+      if (h > maxH) {
+        h = maxH;
+        w = h * ratio;
+      }
+      const x = (pageW - w) / 2;
+      const y = margin;
+      pdf.addImage(imgData, 'PNG', x, y, w, h);
+      pdf.save(filename('pdf'));
+    });
   });
 </script>
 
