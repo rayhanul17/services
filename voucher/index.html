@@ -6,11 +6,12 @@
 <title>মেসার্স অর্পা কনস্ট্রাকশন - ভাউচার</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root {
     --font: 'Hind Siliguri', system-ui, sans-serif;
+    --font-num: 'Noto Sans Bengali', 'Hind Siliguri', system-ui, sans-serif;
     --red: #c62828;
     --blue: #1a4ba0;
     --ink: #1a1a1a;
@@ -156,7 +157,9 @@
   .meta-row input {
     border: none;
     border-bottom: 1px dashed var(--line-soft);
+    font-family: var(--font-num);
     font-size: var(--fs-base);
+    font-variant-numeric: tabular-nums;
     background: transparent;
     outline: none;
     width: 170px;
@@ -180,8 +183,10 @@
   .site-code-row input {
     border: none;
     border-bottom: 1px dashed var(--line-soft);
+    font-family: var(--font-num);
     font-size: var(--fs-md);
     font-weight: var(--fw-semibold);
+    font-variant-numeric: tabular-nums;
     background: transparent;
     outline: none;
     width: 220px;
@@ -218,13 +223,16 @@
     border: none;
     border-bottom: 1px dashed transparent;
     background: transparent;
+    font-family: var(--font-num);
     font-size: var(--fs-md);
     font-weight: var(--fw-medium);
+    font-variant-numeric: tabular-nums;
     text-align: right;
     width: 140px;
     outline: none;
     color: var(--ink);
     padding: 2px 0;
+    letter-spacing: 0.3px;
   }
   .amounts input:focus { border-bottom-color: var(--muted); }
   .amounts tr.total-row td {
@@ -258,7 +266,7 @@
     letter-spacing: 0.5px;
   }
   .proprietor-input { width: 300px; }
-  .mobile-input { width: 160px; }
+  .mobile-input { width: 160px; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
   .address-input {
     width: 400px;
     color: var(--blue);
