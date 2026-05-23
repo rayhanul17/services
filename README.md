@@ -4,10 +4,8 @@ Collection of independent, publicly-hosted utility tools. Each service lives in 
 
 ## Live URLs
 
-After enabling GitHub Pages (Settings → Pages → `main` branch / root):
-
-- Index: `https://<username>.github.io/services/`
-- Voucher: `https://<username>.github.io/services/voucher/`
+- Index: [rayhanul17.github.io/services](https://rayhanul17.github.io/services/)
+- Voucher: [rayhanul17.github.io/services/voucher](https://rayhanul17.github.io/services/voucher/)
 
 ## Adding a new service
 
@@ -16,8 +14,6 @@ After enabling GitHub Pages (Settings → Pages → `main` branch / root):
 3. Add a card to the root `index.html` linking to it.
 4. (Optional) Develop on a feature branch (`invoice-dev`) and merge to `main` to deploy.
 
-## Services
+## Available services
 
-| Service | Folder | Description |
-|---------|--------|-------------|
-| Voucher | [voucher/](voucher/) | মেসার্স অর্পা কনস্ট্রাকশন site voucher generator |
+- **Voucher** ([voucher/](voucher/)) — মেসার্স অর্পা কনস্ট্রাকশন site voucher generator
