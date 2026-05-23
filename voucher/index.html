@@ -122,13 +122,15 @@
   .role-wrap {
     text-align: center;
     margin-top: 6px;
-  }
-  .role {
     color: var(--red);
     font-size: var(--fs-lg);
     font-weight: var(--fw-bold);
-    display: inline-block;
     line-height: 1.3;
+  }
+  .role, input.role {
+    display: inline-block;
+    text-align: center;
+    min-width: 180px;
   }
   .role-underline {
     display: block;
@@ -143,6 +145,13 @@
     margin-top: 6px;
     color: var(--ink);
     line-height: 1.45;
+  }
+  .desc-input {
+    width: 100%;
+    text-align: center;
+    color: var(--ink);
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-regular);
   }
   .address {
     color: var(--blue);
@@ -165,6 +174,39 @@
     margin-bottom: 14px;
   }
   .meta-row .label { color: var(--muted); margin-right: 8px; font-weight: var(--fw-medium); }
+  .label-input {
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+    font-size: var(--fs-base);
+    font-weight: var(--fw-medium);
+    color: var(--muted);
+    outline: none;
+    padding: 0;
+    margin-right: 8px;
+    width: 70px;
+  }
+  .label-input:focus { color: var(--ink); }
+  .site-label-input {
+    color: var(--red);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-md);
+    width: 110px;
+  }
+  .lbl-input {
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+    font-size: var(--fs-md);
+    font-weight: var(--fw-medium);
+    color: var(--ink);
+    outline: none;
+    padding: 0;
+    text-align: right;
+    width: 100%;
+    min-width: 180px;
+  }
+  .total-row .lbl-input { font-weight: var(--fw-semibold); }
   .meta-row input {
     border: none;
     border-bottom: 1px dashed var(--line-soft);
@@ -254,21 +296,22 @@
   .amounts tr.total-row input { font-weight: var(--fw-semibold); }
 
   /* Header inputs (editable text inside header) */
-  .hdr-input {
+  input.hdr-input {
     border: none;
     border-bottom: 1px dashed transparent;
     background: transparent;
     text-align: center;
     outline: none;
     color: inherit;
+    font-family: inherit;
     font-weight: inherit;
     font-size: inherit;
     letter-spacing: inherit;
     line-height: inherit;
     padding: 0;
   }
-  .hdr-input:focus { border-bottom-color: var(--muted); }
-  .company-input {
+  input.hdr-input:focus { border-bottom-color: var(--muted); }
+  input.company-input {
     width: 100%;
     max-width: 620px;
     color: var(--red);
@@ -276,13 +319,13 @@
     font-weight: var(--fw-bold);
     letter-spacing: 0.5px;
   }
-  .hdr-input.auto-size {
+  input.hdr-input.auto-size {
     width: auto;
     min-width: 40px;
   }
-  .proprietor-input { min-width: 200px; }
-  .mobile-input { min-width: 120px; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
-  .address-input {
+  input.proprietor-input { min-width: 200px; }
+  input.mobile-input { min-width: 120px; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+  input.address-input {
     min-width: 260px;
     color: var(--blue);
     font-weight: var(--fw-semibold);
@@ -316,10 +359,10 @@
     <div class="proprietor"><input type="text" id="proprietor" class="hdr-input proprietor-input auto-size" value="প্রোঃ মোঃ আরিফুল ইসলাম" title="প্রোপ্রাইটর" /></div>
     <div class="mobile">মোবাইল: <input type="text" id="mobile" class="hdr-input mobile-input auto-size" value="০১৭৩১৫০৯৪৮৩" title="মোবাইল নাম্বার" /></div>
     <div class="role-wrap">
-      <span class="role" id="role">ঠিকাদার ও সরবরাহকারী</span>
+      <input type="text" id="role" class="role hdr-input auto-size" value="ঠিকাদার ও সরবরাহকারী" title="পেশা" />
       <span class="role-underline" id="roleUnderline"></span>
     </div>
-    <div class="desc">আমরা সকল প্রকার বিল্ডিং নির্মান ও পুনঃনির্মান কাজ কন্ট্রাকের মাধ্যমে নির্ধারিত সময়ে দক্ষ জনবল দ্বারা সম্পন্ন করে থাকি।</div>
+    <div class="desc"><input type="text" id="desc" class="desc-input hdr-input" value="আমরা সকল প্রকার বিল্ডিং নির্মান ও পুনঃনির্মান কাজ কন্ট্রাকের মাধ্যমে নির্ধারিত সময়ে দক্ষ জনবল দ্বারা সম্পন্ন করে থাকি।" title="বর্ণনা" /></div>
     <div class="address"><input type="text" id="address" class="hdr-input address-input auto-size" value="উত্তর আশরতপুর, তাজহাট, রংপুর।" title="ঠিকানা" /></div>
   </div>
 
@@ -327,33 +370,33 @@
 
   <div class="meta-row">
     <div class="left">
-      <span class="label">সূত্র:</span>
-      <input type="text" id="sutro" value="" />
+      <input type="text" class="label label-input" value="সূত্র:" title="বাঁ লেবেল" />
+      <input type="text" id="sutro" value="" title="সূত্র মান" />
     </div>
     <div class="right">
-      <span class="label">তারিখ:</span>
-      <input type="text" id="tarikh" />
+      <input type="text" class="label label-input" value="তারিখ:" title="ডান লেবেল" />
+      <input type="text" id="tarikh" title="তারিখ মান" />
     </div>
   </div>
 
   <div class="site-code-row">
-    <span class="label">সাইট কোড:</span>
-    <input type="text" id="siteCode" value="FNSNG80" />
+    <input type="text" class="label label-input site-label-input" value="সাইট কোড:" title="সাইট কোড লেবেল" />
+    <input type="text" id="siteCode" value="FNSNG80" title="সাইট কোড মান" />
   </div>
 
   <div class="amounts">
     <table>
       <tr>
-        <td class="lbl">সাইটের কাজের রেট :</td>
-        <td class="val"><input type="text" id="rate" value="১,২০,০০০/-" /></td>
+        <td class="lbl"><input type="text" class="lbl-input" value="সাইটের কাজের রেট :" title="রেট লেবেল" /></td>
+        <td class="val"><input type="text" id="rate" value="১,২০,০০০/-" title="রেট মান" /></td>
       </tr>
       <tr>
-        <td class="lbl">সাইট পেমেন্ট :</td>
-        <td class="val"><input type="text" id="payment" value="১,০০,০০০/-" /></td>
+        <td class="lbl"><input type="text" class="lbl-input" value="সাইট পেমেন্ট :" title="পেমেন্ট লেবেল" /></td>
+        <td class="val"><input type="text" id="payment" value="১,০০,০০০/-" title="পেমেন্ট মান" /></td>
       </tr>
       <tr class="total-row">
-        <td class="lbl">মোট পাওনা :</td>
-        <td class="val"><input type="text" id="due" value="২০,০০০/-" /></td>
+        <td class="lbl"><input type="text" class="lbl-input" value="মোট পাওনা :" title="মোট পাওনা লেবেল" /></td>
+        <td class="val"><input type="text" id="due" value="২০,০০০/-" title="মোট পাওনা মান" /></td>
       </tr>
     </table>
   </div>
@@ -414,7 +457,10 @@
     if (role && u) u.style.width = role.offsetWidth + 'px';
   }
   document.querySelectorAll('.auto-size').forEach(inp => {
-    inp.addEventListener('input', () => autoSize(inp));
+    inp.addEventListener('input', () => {
+      autoSize(inp);
+      if (inp.id === 'role') syncRoleUnderline();
+    });
   });
   autoSizeAll();
   syncRoleUnderline();
