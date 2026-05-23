@@ -6,14 +6,14 @@
 <title>সাইট ভাউচার</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Tiro+Bangla:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@400;500;600;700&family=Baloo+Da+2:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root {
-    --font: 'Noto Sans Bengali', 'Hind Siliguri', system-ui, sans-serif;
-    --font-num: 'Noto Sans Bengali', 'Hind Siliguri', system-ui, sans-serif;
-    --font-display: 'Tiro Bangla', 'Noto Sans Bengali', serif;
+    --font: 'Anek Bangla', 'Noto Sans Bengali', system-ui, sans-serif;
+    --font-num: 'Anek Bangla', 'Noto Sans Bengali', system-ui, sans-serif;
+    --font-display: 'Baloo Da 2', 'Anek Bangla', 'Noto Sans Bengali', sans-serif;
     --red: #c62828;
     --blue: #1a4ba0;
     --ink: #1a1a1a;
@@ -21,12 +21,13 @@
     --line: #bdbdbd;
     --line-soft: #e0e0e0;
 
-    --fs-xs: 13px;
-    --fs-sm: 14px;
-    --fs-base: 16px;
-    --fs-md: 18px;
-    --fs-lg: 22px;
-    --fs-xl: 34px;
+    --fs-xs: 14px;
+    --fs-sm: 15px;
+    --fs-base: 17px;
+    --fs-md: 19px;
+    --fs-lg: 24px;
+    --fs-amount: 21px;
+    --fs-xl: 36px;
 
     --fw-regular: 400;
     --fw-medium: 500;
@@ -199,7 +200,7 @@
     border: none;
     background: transparent;
     font-family: var(--font);
-    font-size: var(--fs-md);
+    font-size: var(--fs-amount);
     font-weight: var(--fw-medium);
     color: var(--ink);
     outline: none;
@@ -256,7 +257,7 @@
   }
   .amounts table {
     border-collapse: collapse;
-    font-size: var(--fs-md);
+    font-size: var(--fs-amount);
   }
   .amounts td {
     padding: 5px 16px;
@@ -275,11 +276,11 @@
     border: none;
     background: transparent;
     font-family: var(--font-num);
-    font-size: var(--fs-md);
+    font-size: var(--fs-amount);
     font-weight: var(--fw-medium);
     font-variant-numeric: tabular-nums;
     text-align: right;
-    width: 140px;
+    width: 150px;
     outline: none;
     color: var(--ink);
     padding: 2px 0;
