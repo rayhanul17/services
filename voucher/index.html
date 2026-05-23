@@ -266,10 +266,14 @@
     font-weight: var(--fw-bold);
     letter-spacing: 0.5px;
   }
-  .proprietor-input { width: 300px; }
-  .mobile-input { width: 160px; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+  .hdr-input.auto-size {
+    width: auto;
+    min-width: 40px;
+  }
+  .proprietor-input { min-width: 200px; }
+  .mobile-input { min-width: 120px; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
   .address-input {
-    width: 400px;
+    min-width: 260px;
     color: var(--blue);
     font-weight: var(--fw-semibold);
   }
@@ -306,11 +310,11 @@
   <div class="header">
     <div class="bismillah">বিসমিল্লাহির রাহমানির রাহিম</div>
     <div class="company-name"><input type="text" id="companyName" class="hdr-input company-input" value="মেসার্স অর্পা কনস্ট্রাকশন" title="কোম্পানির নাম" /></div>
-    <div class="proprietor"><input type="text" id="proprietor" class="hdr-input proprietor-input" value="প্রোঃ মোঃ আরিফুল ইসলাম" title="প্রোপ্রাইটর" /></div>
-    <div class="mobile">মোবাইল নং: <input type="text" id="mobile" class="hdr-input mobile-input" value="০১৭৩১৫০৯৪৮৩" title="মোবাইল নাম্বার" /></div>
+    <div class="proprietor"><input type="text" id="proprietor" class="hdr-input proprietor-input auto-size" value="প্রোঃ মোঃ আরিফুল ইসলাম" title="প্রোপ্রাইটর" /></div>
+    <div class="mobile">মোবাইল নং: <input type="text" id="mobile" class="hdr-input mobile-input auto-size" value="০১৭৩১৫০৯৪৮৩" title="মোবাইল নাম্বার" /></div>
     <div class="role">ঠিকাদার ও সরবরাহকারী</div>
     <div class="desc">আমরা সকল প্রকার বিল্ডিং নির্মান ও পুনঃনির্মান কাজ কন্ট্রাকের মাধ্যমে নির্ধারিত সময়ে দক্ষ জনবল দ্বারা সম্পন্ন করে থাকি।</div>
-    <div class="address"><input type="text" id="address" class="hdr-input address-input" value="উত্তর আশরতপুর, তাজহাট, রংপুর।" title="ঠিকানা" /></div>
+    <div class="address"><input type="text" id="address" class="hdr-input address-input auto-size" value="উত্তর আশরতপুর, তাজহাট, রংপুর।" title="ঠিকানা" /></div>
   </div>
 
   <hr class="divider" />
@@ -368,6 +372,36 @@
     const yyyy = d.getFullYear();
     document.getElementById('tarikh').value = toBengaliDigits(`${dd}/${mm}/${yyyy}`);
   })();
+
+  // Auto-size inputs based on content (so border-bottom hugs the text)
+  const sizer = document.createElement('span');
+  sizer.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;left:-9999px;top:-9999px;';
+  document.body.appendChild(sizer);
+
+  function autoSize(inp) {
+    const cs = getComputedStyle(inp);
+    sizer.style.font = cs.font;
+    sizer.style.fontFamily = cs.fontFamily;
+    sizer.style.fontSize = cs.fontSize;
+    sizer.style.fontWeight = cs.fontWeight;
+    sizer.style.letterSpacing = cs.letterSpacing;
+    sizer.style.fontVariantNumeric = cs.fontVariantNumeric;
+    sizer.textContent = inp.value || inp.placeholder || '';
+    const minW = parseFloat(cs.minWidth) || 0;
+    const w = Math.max(minW, sizer.offsetWidth + 4);
+    inp.style.width = w + 'px';
+  }
+
+  function autoSizeAll() {
+    document.querySelectorAll('.auto-size').forEach(autoSize);
+  }
+  document.querySelectorAll('.auto-size').forEach(inp => {
+    inp.addEventListener('input', () => autoSize(inp));
+  });
+  autoSizeAll();
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(autoSizeAll);
+  }
 
   // Signature upload
   document.getElementById('sigUpload').addEventListener('change', (e) => {
