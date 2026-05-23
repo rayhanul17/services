@@ -119,17 +119,24 @@
     margin: 4px 0 8px;
   }
   .mobile { font-size: var(--fs-base); font-weight: var(--fw-medium); margin-top: 4px; }
+  .role-wrap {
+    text-align: center;
+    margin-top: 12px;
+  }
   .role {
     color: var(--red);
     font-size: var(--fs-lg);
     font-weight: var(--fw-bold);
-    margin-top: 10px;
     display: inline-block;
-    padding-bottom: 4px;
-    border-bottom: 2px solid var(--red);
-    line-height: 1.3;
+    line-height: 1.4;
   }
-  .role-wrap { text-align: center; }
+  .role-underline {
+    display: block;
+    height: 2px;
+    background: var(--red);
+    margin: 6px auto 0;
+    width: 0;
+  }
   .desc {
     font-size: var(--fs-sm);
     font-weight: var(--fw-regular);
@@ -315,7 +322,10 @@
     <div class="company-name"><input type="text" id="companyName" class="hdr-input company-input" value="মেসার্স অর্পা কনস্ট্রাকশন" title="কোম্পানির নাম" /></div>
     <div class="proprietor"><input type="text" id="proprietor" class="hdr-input proprietor-input auto-size" value="প্রোঃ মোঃ আরিফুল ইসলাম" title="প্রোপ্রাইটর" /></div>
     <div class="mobile">মোবাইল নং: <input type="text" id="mobile" class="hdr-input mobile-input auto-size" value="০১৭৩১৫০৯৪৮৩" title="মোবাইল নাম্বার" /></div>
-    <div class="role-wrap"><span class="role">ঠিকাদার ও সরবরাহকারী</span></div>
+    <div class="role-wrap">
+      <span class="role" id="role">ঠিকাদার ও সরবরাহকারী</span>
+      <span class="role-underline" id="roleUnderline"></span>
+    </div>
     <div class="desc">আমরা সকল প্রকার বিল্ডিং নির্মান ও পুনঃনির্মান কাজ কন্ট্রাকের মাধ্যমে নির্ধারিত সময়ে দক্ষ জনবল দ্বারা সম্পন্ন করে থাকি।</div>
     <div class="address"><input type="text" id="address" class="hdr-input address-input auto-size" value="উত্তর আশরতপুর, তাজহাট, রংপুর।" title="ঠিকানা" /></div>
   </div>
@@ -398,12 +408,18 @@
   function autoSizeAll() {
     document.querySelectorAll('.auto-size').forEach(autoSize);
   }
+  function syncRoleUnderline() {
+    const role = document.getElementById('role');
+    const u = document.getElementById('roleUnderline');
+    if (role && u) u.style.width = role.offsetWidth + 'px';
+  }
   document.querySelectorAll('.auto-size').forEach(inp => {
     inp.addEventListener('input', () => autoSize(inp));
   });
   autoSizeAll();
+  syncRoleUnderline();
   if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(autoSizeAll);
+    document.fonts.ready.then(() => { autoSizeAll(); syncRoleUnderline(); });
   }
 
   // Signature upload
