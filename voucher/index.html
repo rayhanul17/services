@@ -88,10 +88,10 @@
     align-items: center;
     flex-wrap: wrap;
   }
-  .controls-row.actions { justify-content: flex-end; }
-  .controls-row.actions button { flex: 1 1 auto; }
+  .controls-row.actions { gap: 10px; flex-wrap: wrap; }
+  .controls-row.actions button { flex: 1 1 100%; }
   @media (min-width: 600px) {
-    .controls-row.actions button { flex: 0 0 auto; }
+    .controls-row.actions button { flex: 1 1 calc(50% - 5px); }
   }
   .controls label { font-weight: var(--fw-semibold); font-size: var(--fs-sm); color: var(--ink); white-space: nowrap; flex-shrink: 0; }
   .controls input[type="file"] { font-size: var(--fs-sm); min-width: 0; flex-shrink: 1; }
@@ -333,7 +333,7 @@
     font-weight: var(--fw-medium);
     font-variant-numeric: tabular-nums;
     text-align: right;
-    width: 150px;
+    min-width: 80px;
     outline: none;
     color: var(--ink);
     padding: 2px 0;
@@ -402,7 +402,7 @@
     .controls { padding: 10px 12px; gap: 8px; }
     .controls label { white-space: nowrap; flex-shrink: 0; }
     .controls input[type="file"] { flex-shrink: 1; min-width: 0; max-width: 180px; }
-    .controls button { white-space: nowrap; padding: 8px 12px; font-size: 13px; flex-shrink: 0; }
+    .controls button { white-space: nowrap; padding: 10px 12px; font-size: 14px; }
 
     /* On mobile, every input is single-line and scrolls horizontally
        inside its own box (default <input type="text"> behavior).
@@ -453,7 +453,7 @@
     .voucher:not(.render-desktop) .amounts td.lbl { width: auto; }
     .voucher:not(.render-desktop) .amounts td.val { width: 1%; white-space: nowrap; }
     .voucher:not(.render-desktop) .amounts .lbl-input { width: 100%; }
-    .voucher:not(.render-desktop) .amounts td.val input { width: auto; max-width: 130px; }
+    .voucher:not(.render-desktop) .amounts td.val input { width: auto; max-width: 100%; }
   }
 </style>
 </head>
@@ -495,15 +495,15 @@
     <table>
       <tr>
         <td class="lbl"><input type="text" class="lbl-input auto-size" value="সাইটের কাজের রেট :" title="রেট লেবেল" /></td>
-        <td class="val"><input type="text" id="rate" value="১,২০,০০০/-" title="রেট মান" /></td>
+        <td class="val"><input type="text" id="rate" class="auto-size" value="১,২০,০০০/-" title="রেট মান" /></td>
       </tr>
       <tr>
         <td class="lbl"><input type="text" class="lbl-input auto-size" value="সাইট পেমেন্ট :" title="পেমেন্ট লেবেল" /></td>
-        <td class="val"><input type="text" id="payment" value="১,০০,০০০/-" title="পেমেন্ট মান" /></td>
+        <td class="val"><input type="text" id="payment" class="auto-size" value="১,০০,০০০/-" title="পেমেন্ট মান" /></td>
       </tr>
       <tr class="total-row">
         <td class="lbl"><input type="text" class="lbl-input auto-size" value="মোট পাওনা :" title="মোট পাওনা লেবেল" /></td>
-        <td class="val"><input type="text" id="due" value="২০,০০০/-" title="মোট পাওনা মান" /></td>
+        <td class="val"><input type="text" id="due" class="auto-size" value="২০,০০০/-" title="মোট পাওনা মান" /></td>
       </tr>
     </table>
   </div>
