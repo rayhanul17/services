@@ -214,12 +214,14 @@
     font-variant-numeric: tabular-nums;
     background: transparent;
     outline: none;
-    width: 170px;
+    min-width: 60px;
     color: var(--ink);
     padding: 2px 0;
   }
   .meta-row input:focus { border-bottom-color: var(--muted); }
-  .meta-row .right input { text-align: right; }
+  .meta-row .left { display: flex; align-items: baseline; gap: 0; }
+  .meta-row .right { display: flex; align-items: baseline; gap: 0; }
+  .meta-row #sutro { width: 170px; }
 
   .site-code-row {
     margin-bottom: 24px;
@@ -241,7 +243,7 @@
     font-variant-numeric: tabular-nums;
     background: transparent;
     outline: none;
-    width: 220px;
+    min-width: 80px;
     color: var(--ink);
     padding: 2px 0;
     letter-spacing: 0.5px;
@@ -374,13 +376,13 @@
     </div>
     <div class="right">
       <input type="text" class="label label-input auto-size" value="তারিখ:" title="ডান লেবেল" />
-      <input type="text" id="tarikh" title="তারিখ মান" />
+      <input type="text" id="tarikh" class="auto-size" title="তারিখ মান" />
     </div>
   </div>
 
   <div class="site-code-row">
     <input type="text" class="label label-input site-label-input auto-size" value="সাইট কোড:" title="সাইট কোড লেবেল" />
-    <input type="text" id="siteCode" value="FNSNG80" title="সাইট কোড মান" />
+    <input type="text" id="siteCode" class="auto-size" value="FNSNG80" title="সাইট কোড মান" />
   </div>
 
   <div class="amounts">
