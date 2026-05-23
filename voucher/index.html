@@ -60,7 +60,7 @@
 
   .controls {
     max-width: 820px;
-    margin: 0 auto 20px;
+    margin: 20px auto 0;
     background: #fff;
     padding: 14px 18px;
     border-radius: 10px;
@@ -309,13 +309,6 @@
 </head>
 <body>
 
-<div class="controls">
-  <label for="sigUpload">স্বাক্ষর পরিবর্তন (optional):</label>
-  <input type="file" id="sigUpload" accept="image/*" />
-  <button type="button" id="downloadPngBtn">⬇ Download PNG</button>
-  <button type="button" id="downloadPdfBtn" class="secondary">⬇ Download PDF</button>
-</div>
-
 <div class="voucher" id="voucher">
   <div class="header">
     <div class="bismillah">বিসমিল্লাহির রাহমানির রাহিম</div>
@@ -368,6 +361,13 @@
   <div class="signature-area">
     <img id="signature" src="signature.png" alt="স্বাক্ষর" />
   </div>
+</div>
+
+<div class="controls">
+  <label for="sigUpload">স্বাক্ষর পরিবর্তন (optional):</label>
+  <input type="file" id="sigUpload" accept="image/*" />
+  <button type="button" id="downloadPngBtn">⬇ Download PNG</button>
+  <button type="button" id="downloadPdfBtn" class="secondary">⬇ Download PDF</button>
 </div>
 
 <script>
