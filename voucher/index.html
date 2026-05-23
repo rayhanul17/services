@@ -123,16 +123,19 @@
     color: var(--red);
     font-size: var(--fs-lg);
     font-weight: var(--fw-bold);
-    text-decoration: underline;
-    text-underline-offset: 5px;
-    text-decoration-thickness: 1.5px;
     margin-top: 10px;
+    display: inline-block;
+    padding-bottom: 4px;
+    border-bottom: 2px solid var(--red);
+    line-height: 1.3;
   }
+  .role-wrap { text-align: center; }
   .desc {
     font-size: var(--fs-sm);
     font-weight: var(--fw-regular);
-    margin-top: 8px;
+    margin-top: 10px;
     color: var(--ink);
+    line-height: 1.5;
   }
   .address {
     color: var(--blue);
@@ -312,7 +315,7 @@
     <div class="company-name"><input type="text" id="companyName" class="hdr-input company-input" value="মেসার্স অর্পা কনস্ট্রাকশন" title="কোম্পানির নাম" /></div>
     <div class="proprietor"><input type="text" id="proprietor" class="hdr-input proprietor-input auto-size" value="প্রোঃ মোঃ আরিফুল ইসলাম" title="প্রোপ্রাইটর" /></div>
     <div class="mobile">মোবাইল নং: <input type="text" id="mobile" class="hdr-input mobile-input auto-size" value="০১৭৩১৫০৯৪৮৩" title="মোবাইল নাম্বার" /></div>
-    <div class="role">ঠিকাদার ও সরবরাহকারী</div>
+    <div class="role-wrap"><span class="role">ঠিকাদার ও সরবরাহকারী</span></div>
     <div class="desc">আমরা সকল প্রকার বিল্ডিং নির্মান ও পুনঃনির্মান কাজ কন্ট্রাকের মাধ্যমে নির্ধারিত সময়ে দক্ষ জনবল দ্বারা সম্পন্ন করে থাকি।</div>
     <div class="address"><input type="text" id="address" class="hdr-input address-input auto-size" value="উত্তর আশরতপুর, তাজহাট, রংপুর।" title="ঠিকানা" /></div>
   </div>
@@ -424,18 +427,29 @@
     node.style.width = '820px';
     node.style.maxWidth = 'none';
 
-    // Replace inputs with spans for cleaner text rendering
+    // Replace inputs with spans for cleaner text rendering.
+    // Copy only safe text-rendering properties — NOT width (let span size to content).
     const inputs = node.querySelectorAll('input');
     const replacements = [];
     inputs.forEach(inp => {
       const span = document.createElement('span');
       span.textContent = inp.value;
       const cs = window.getComputedStyle(inp);
-      span.style.cssText = cs.cssText;
-      span.style.borderBottom = 'none';
       span.style.display = 'inline-block';
+      span.style.fontFamily = cs.fontFamily;
+      span.style.fontSize = cs.fontSize;
+      span.style.fontWeight = cs.fontWeight;
+      span.style.fontStyle = cs.fontStyle;
+      span.style.color = cs.color;
+      span.style.letterSpacing = cs.letterSpacing;
+      span.style.fontVariantNumeric = cs.fontVariantNumeric;
+      span.style.lineHeight = cs.lineHeight;
+      span.style.whiteSpace = 'pre';
+      span.style.verticalAlign = 'baseline';
+      // Match the input's box width so right-aligned amounts stay in the same column.
       span.style.width = inp.offsetWidth + 'px';
-      span.style.textAlign = inp.style.textAlign || cs.textAlign;
+      span.style.textAlign = cs.textAlign;
+      span.style.overflow = 'visible';
       inp.parentNode.insertBefore(span, inp);
       inp.style.display = 'none';
       replacements.push({ inp, span });
@@ -494,25 +508,19 @@
       const canvas = await renderVoucher();
       const imgData = canvas.toDataURL('image/png');
 
-      // A4 portrait in mm: 210 x 297. Fit canvas to width with margin.
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const maxW = pageW - margin * 2;
-      const maxH = pageH - margin * 2;
+      // PDF size = actual voucher size (no A4 padding). 96dpi → 1px = 0.2645mm
+      // Canvas rendered at scale:2 of 820px width; divide by 2 to get CSS px then × 0.2645.
+      const cssPxToMm = 25.4 / 96;
+      const widthMm = (canvas.width / 2) * cssPxToMm;
+      const heightMm = (canvas.height / 2) * cssPxToMm;
 
-      const ratio = canvas.width / canvas.height;
-      let w = maxW;
-      let h = w / ratio;
-      if (h > maxH) {
-        h = maxH;
-        w = h * ratio;
-      }
-      const x = (pageW - w) / 2;
-      const y = margin;
-      pdf.addImage(imgData, 'PNG', x, y, w, h);
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({
+        orientation: widthMm > heightMm ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: [widthMm, heightMm]
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, widthMm, heightMm);
       pdf.save(filename('pdf'));
     });
   });
