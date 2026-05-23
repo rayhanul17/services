@@ -336,10 +336,36 @@
   }
 
   @media (max-width: 860px) {
-    .voucher { width: 100%; padding: 24px 18px 32px; }
-    .company-input { font-size: 26px; }
+    body { padding: 12px 8px; }
+    .voucher:not(.render-desktop) {
+      width: 100%;
+      padding: 20px 14px 24px;
+      overflow-x: hidden;
+    }
+    .voucher:not(.render-desktop) .company-input { font-size: 24px; }
     .controls { flex-direction: column; align-items: stretch; }
     .controls button { width: 100%; }
+
+    /* On mobile, every input is single-line and scrolls horizontally
+       inside its own box (default <input type="text"> behavior).
+       Layout columns stay capped at the viewport. Auto-size JS is
+       disabled on mobile (see autoSize()) so widths come from CSS.
+       The PDF/PNG render adds .render-desktop class which disables
+       these overrides — output uses the full desktop layout. */
+    .voucher:not(.render-desktop) input { max-width: 100%; box-sizing: border-box; min-width: 0; }
+    .voucher:not(.render-desktop) .meta-row { gap: 12px; }
+    .voucher:not(.render-desktop) .meta-row .left,
+    .voucher:not(.render-desktop) .meta-row .right { min-width: 0; flex: 1; }
+    .voucher:not(.render-desktop) .meta-row .left input:not(.label-input),
+    .voucher:not(.render-desktop) .meta-row .right input:not(.label-input) { flex: 1; min-width: 0; width: auto; }
+    .voucher:not(.render-desktop) .site-code-row { flex-wrap: nowrap; min-width: 0; }
+    .voucher:not(.render-desktop) .site-code-row input:not(.label-input) { flex: 1; min-width: 0; }
+    .voucher:not(.render-desktop) .amounts { width: 100%; overflow-x: hidden; }
+    .voucher:not(.render-desktop) .amounts table { width: 100%; }
+    .voucher:not(.render-desktop) .amounts td.lbl { width: auto; }
+    .voucher:not(.render-desktop) .amounts td.val { width: 1%; white-space: nowrap; }
+    .voucher:not(.render-desktop) .amounts .lbl-input { width: 100%; }
+    .voucher:not(.render-desktop) .amounts td.val input { width: auto; max-width: 130px; }
   }
 </style>
 </head>
@@ -427,7 +453,9 @@
   sizer.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;left:-9999px;top:-9999px;';
   document.body.appendChild(sizer);
 
-  function autoSize(inp) {
+  function autoSize(inp, force) {
+    // On mobile, let CSS handle widths (full-width scrollable inputs).
+    if (!force && window.innerWidth <= 860) { inp.style.width = ''; return; }
     const cs = getComputedStyle(inp);
     sizer.style.font = cs.font;
     sizer.style.fontFamily = cs.fontFamily;
@@ -460,6 +488,11 @@
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(() => { autoSizeAll(); syncRoleUnderline(); });
   }
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { autoSizeAll(); syncRoleUnderline(); }, 150);
+  });
 
   // Signature upload
   document.getElementById('sigUpload').addEventListener('change', (e) => {
@@ -481,6 +514,16 @@
     const prevMaxW = node.style.maxWidth;
     node.style.width = '820px';
     node.style.maxWidth = 'none';
+    node.classList.add('render-desktop');
+
+    // Force auto-sizing of inputs to their content (mobile CSS would otherwise
+    // make them full-width). Record original inline widths to restore later.
+    const savedWidths = new Map();
+    document.querySelectorAll('.auto-size').forEach(inp => {
+      savedWidths.set(inp, inp.style.width);
+      autoSize(inp, true);
+    });
+    syncRoleUnderline();
 
     // Replace inputs with spans for cleaner text rendering.
     // Copy only safe text-rendering properties — NOT width (let span size to content).
@@ -526,6 +569,10 @@
       });
       node.style.width = prevWidth;
       node.style.maxWidth = prevMaxW;
+      node.classList.remove('render-desktop');
+      // Restore original input widths (mobile state)
+      savedWidths.forEach((w, inp) => { inp.style.width = w; });
+      syncRoleUnderline();
     }
   }
 
