@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   @font-face {
     font-family: 'Noto Serif Bengali Local';
@@ -21,7 +22,7 @@
 
   :root {
     --font: 'Noto Serif Bengali Local', serif;
-    --font-num: 'Noto Serif Bengali Local', serif;
+    --font-num: 'Hind Siliguri', 'Noto Serif Bengali Local', sans-serif;
     --font-display: 'Noto Serif Bengali Local', serif;
     --font-script: 'Noto Serif Bengali Local', serif;
     --red: #c62828;
@@ -78,9 +79,19 @@
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     display: flex;
-    gap: 12px;
-    flex-wrap: nowrap;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .controls-row {
+    display: flex;
+    gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
+  }
+  .controls-row.actions { justify-content: flex-end; }
+  .controls-row.actions button { flex: 1 1 auto; }
+  @media (min-width: 600px) {
+    .controls-row.actions button { flex: 0 0 auto; }
   }
   .controls label { font-weight: var(--fw-semibold); font-size: var(--fs-sm); color: var(--ink); white-space: nowrap; flex-shrink: 0; }
   .controls input[type="file"] { font-size: var(--fs-sm); min-width: 0; flex-shrink: 1; }
@@ -358,14 +369,9 @@
       overflow-x: hidden;
     }
     .voucher:not(.render-desktop) .company-input { font-size: 24px; }
-    .controls {
-      flex-wrap: nowrap;
-      gap: 6px;
-      padding: 10px 12px;
-      overflow-x: auto;
-    }
+    .controls { padding: 10px 12px; gap: 8px; }
     .controls label { white-space: nowrap; flex-shrink: 0; }
-    .controls input[type="file"] { flex-shrink: 1; min-width: 0; max-width: 140px; }
+    .controls input[type="file"] { flex-shrink: 1; min-width: 0; max-width: 180px; }
     .controls button { white-space: nowrap; padding: 8px 12px; font-size: 13px; flex-shrink: 0; }
 
     /* On mobile, every input is single-line and scrolls horizontally
@@ -478,10 +484,14 @@
 </div>
 
 <div class="controls">
-  <label for="sigUpload">স্বাক্ষর পরিবর্তন (optional):</label>
-  <input type="file" id="sigUpload" accept="image/*" />
-  <button type="button" id="downloadPngBtn">⬇ Download PNG</button>
-  <button type="button" id="downloadPdfBtn" class="secondary">⬇ Download PDF</button>
+  <div class="controls-row">
+    <label for="sigUpload">স্বাক্ষর পরিবর্তন (optional):</label>
+    <input type="file" id="sigUpload" accept="image/*" />
+  </div>
+  <div class="controls-row actions">
+    <button type="button" id="downloadPngBtn">⬇ Download PNG</button>
+    <button type="button" id="downloadPdfBtn" class="secondary">⬇ Download PDF</button>
+  </div>
 </div>
 
 <script>
