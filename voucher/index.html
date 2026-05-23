@@ -234,7 +234,7 @@
     color: var(--red);
     font-weight: var(--fw-bold);
   }
-  .site-code-row input {
+  .site-code-row input:not(.label-input) {
     border: none;
     border-bottom: 1px dashed var(--line-soft);
     font-family: var(--font-num);
@@ -248,7 +248,7 @@
     padding: 2px 0;
     letter-spacing: 0.5px;
   }
-  .site-code-row input:focus { border-bottom-color: var(--muted); }
+  .site-code-row input:not(.label-input):focus { border-bottom-color: var(--muted); }
 
   /* Amounts */
   .amounts {
