@@ -12,10 +12,12 @@
   @font-face {
     font-family: 'Noto Serif Bengali Local';
     src: url('fonts/NotoSerifBengali-Regular.ttf') format('truetype');
-    font-weight: 400 700;
+    font-weight: 400;
     font-style: normal;
     font-display: swap;
   }
+  /* Allow browser to synthesize bold from the regular file */
+  html { -webkit-font-synthesis: weight; font-synthesis: weight; }
 
   :root {
     --font: 'Noto Serif Bengali Local', serif;
@@ -77,11 +79,11 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     display: flex;
     gap: 12px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
   }
-  .controls label { font-weight: var(--fw-semibold); font-size: var(--fs-sm); color: var(--ink); }
-  .controls input[type="file"] { font-size: var(--fs-sm); }
+  .controls label { font-weight: var(--fw-semibold); font-size: var(--fs-sm); color: var(--ink); white-space: nowrap; flex-shrink: 0; }
+  .controls input[type="file"] { font-size: var(--fs-sm); min-width: 0; flex-shrink: 1; }
   .controls button {
     padding: 9px 20px;
     background: var(--red);
@@ -92,6 +94,8 @@
     font-weight: var(--fw-semibold);
     font-size: var(--fs-sm);
     letter-spacing: 0.2px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .controls button:hover { background: #a91d1d; }
   .controls button.secondary { background: #424242; }
@@ -354,8 +358,15 @@
       overflow-x: hidden;
     }
     .voucher:not(.render-desktop) .company-input { font-size: 24px; }
-    .controls { flex-direction: column; align-items: stretch; }
-    .controls button { width: 100%; }
+    .controls {
+      flex-wrap: nowrap;
+      gap: 6px;
+      padding: 10px 12px;
+      overflow-x: auto;
+    }
+    .controls label { white-space: nowrap; flex-shrink: 0; }
+    .controls input[type="file"] { flex-shrink: 1; min-width: 0; max-width: 140px; }
+    .controls button { white-space: nowrap; padding: 8px 12px; font-size: 13px; flex-shrink: 0; }
 
     /* On mobile, every input is single-line and scrolls horizontally
        inside its own box (default <input type="text"> behavior).
