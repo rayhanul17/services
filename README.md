@@ -14,6 +14,10 @@ Collection of independent, publicly-hosted utility tools. Each service lives in 
 3. Add a card to the root `index.html` linking to it.
 4. (Optional) Develop on a feature branch (`invoice-dev`) and merge to `main` to deploy.
 
+<!-- markdownlint-disable MD060 -->
 ## Available services
 
-- **Voucher** ([voucher/](voucher/)) — মেসার্স অর্পা কনস্ট্রাকশন site voucher generator
+| Service | Folder               | Description                                      |
+|---------|----------------------|--------------------------------------------------|
+| Voucher | [voucher/](voucher/) | মেসার্স অর্পা কনস্ট্রাকশন site voucher generator |
+<!-- markdownlint-enable MD060 -->
