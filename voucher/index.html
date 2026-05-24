@@ -793,10 +793,10 @@
   document.getElementById('downloadPdfBtn').addEventListener('click', (e) => {
     withBusy(e.currentTarget, 'Generating...', async () => {
       const canvas = await renderVoucher();
-      const imgData = canvas.toDataURL('image/png');
+      // JPEG instead of PNG for PDF embed — ~5-10× smaller file with no visible
+      // quality loss for printed vouchers. PNG download keeps lossless quality.
+      const imgData = canvas.toDataURL('image/jpeg', 0.9);
 
-      // PDF size = actual voucher size (no A4 padding). 96dpi → 1px = 0.2645mm
-      // Canvas rendered at scale:2 of 820px width; divide by 2 to get CSS px then × 0.2645.
       const cssPxToMm = 25.4 / 96;
       const widthMm = (canvas.width / 2) * cssPxToMm;
       const heightMm = (canvas.height / 2) * cssPxToMm;
@@ -805,9 +805,10 @@
       const pdf = new jsPDF({
         orientation: widthMm > heightMm ? 'landscape' : 'portrait',
         unit: 'mm',
-        format: [widthMm, heightMm]
+        format: [widthMm, heightMm],
+        compress: true
       });
-      pdf.addImage(imgData, 'PNG', 0, 0, widthMm, heightMm);
+      pdf.addImage(imgData, 'JPEG', 0, 0, widthMm, heightMm, undefined, 'FAST');
       pdf.save(filename('pdf'));
       bumpStat('pdf', 'statPdf');
     });
