@@ -151,6 +151,7 @@
     box-shadow: 0 4px 14px rgba(0,0,0,0.08);
     color: var(--ink);
     font-size: var(--fs-base);
+    overflow: hidden;
   }
 
   /* Header */
@@ -262,6 +263,8 @@
     padding: 0;
     text-align: right;
     min-width: 40px;
+    box-sizing: border-box;
+    white-space: nowrap;
   }
   .total-row .lbl-input { font-weight: var(--fw-semibold); }
   .meta-row input:not(.label-input) {
@@ -313,11 +316,14 @@
   .amounts table {
     border-collapse: collapse;
     font-size: var(--fs-amount);
+    max-width: 100%;
   }
   .amounts td {
     padding: 5px 16px;
     vertical-align: middle;
+    white-space: nowrap;
   }
+  .amounts td.lbl { text-align: right; }
   .amounts td.lbl {
     text-align: right;
     font-weight: var(--fw-medium);
@@ -340,6 +346,7 @@
     color: var(--ink);
     padding: 2px 0;
     letter-spacing: 0.3px;
+    box-sizing: border-box;
   }
   .amounts tr.total-row td {
     border-top: 1.5px solid #000;
@@ -378,9 +385,15 @@
   input.mobile-input { min-width: 120px; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
   input.address-input {
     min-width: 260px;
+    max-width: 100%;
     color: var(--blue);
     font-weight: var(--fw-semibold);
+    box-sizing: border-box;
   }
+  input.proprietor-input { max-width: 100%; box-sizing: border-box; }
+  input.company-input { max-width: 100%; box-sizing: border-box; }
+  input.mobile-input { max-width: 100%; box-sizing: border-box; }
+  input.role { max-width: 100%; box-sizing: border-box; }
 
   .signature-area {
     display: flex;
@@ -450,12 +463,8 @@
     }
     .voucher:not(.render-desktop) .site-code-row .label-input { flex: 0 0 auto; width: auto; }
     .voucher:not(.render-desktop) .site-code-row input:not(.label-input) { flex: 1 1 auto; min-width: 0; }
-    .voucher:not(.render-desktop) .amounts { width: 100%; overflow-x: hidden; }
-    .voucher:not(.render-desktop) .amounts table { width: 100%; }
-    .voucher:not(.render-desktop) .amounts td.lbl { width: auto; }
-    .voucher:not(.render-desktop) .amounts td.val { width: 1%; white-space: nowrap; }
-    .voucher:not(.render-desktop) .amounts .lbl-input { width: 100%; }
-    .voucher:not(.render-desktop) .amounts td.val input { width: auto; max-width: 100%; }
+    .voucher:not(.render-desktop) .amounts { width: 100%; overflow-x: auto; }
+    .voucher:not(.render-desktop) .amounts table { width: auto; min-width: 100%; }
   }
 </style>
 </head>
