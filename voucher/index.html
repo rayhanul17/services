@@ -265,6 +265,7 @@
     min-width: 40px;
     box-sizing: border-box;
     white-space: nowrap;
+    letter-spacing: 0;
   }
   .total-row .lbl-input { font-weight: var(--fw-semibold); }
   .meta-row input:not(.label-input) {
@@ -333,7 +334,7 @@
     text-align: right;
     min-width: 150px;
   }
-  .amounts input {
+  .amounts input:not(.lbl-input) {
     border: none;
     background: transparent;
     font-family: var(--font-num);
