@@ -46,13 +46,13 @@
     --line: #bdbdbd;
     --line-soft: #e0e0e0;
 
-    --fs-xs: 15px;
-    --fs-sm: 16px;
-    --fs-base: 18px;
-    --fs-md: 20px;
-    --fs-lg: 26px;
-    --fs-amount: 23px;
-    --fs-xl: 40px;
+    --fs-xs: 12px;
+    --fs-sm: 13px;
+    --fs-base: 15px;
+    --fs-md: 17px;
+    --fs-lg: 21px;
+    --fs-amount: 18px;
+    --fs-xl: 30px;
 
     --fw-regular: 400;
     --fw-medium: 500;
@@ -86,7 +86,7 @@
   }
 
   .controls {
-    max-width: 820px;
+    max-width: 794px;
     margin: 20px auto 0;
     background: #fff;
     padding: 14px 18px;
@@ -127,7 +127,7 @@
   .controls button.secondary:hover { background: #2a2a2a; }
 
   .stats {
-    max-width: 820px;
+    max-width: 794px;
     margin: 12px auto 0;
     padding: 12px 18px;
     background: #fff;
@@ -157,16 +157,22 @@
   }
 
   .voucher {
-    width: 820px;
+    /* A5 landscape (210 × 148 mm) so two vouchers fit on one A4 portrait page.
+       96dpi → 210mm = 794px, 148mm = 559px. */
+    width: 794px;
+    height: 559px;
     margin: 0 auto;
     background: #fff;
-    padding: 28px 56px 32px;
+    padding: 14px 36px 16px;
     border: 1px solid #e0e0e0;
     box-shadow: 0 4px 14px rgba(0,0,0,0.08);
     color: var(--ink);
     font-size: var(--fs-base);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
+  .voucher .signature-area { margin-top: auto; padding-top: 4px; }
 
   /* Header */
   .header { text-align: center; }
@@ -236,7 +242,7 @@
   .divider {
     border: none;
     border-top: 1.5px solid #333;
-    margin: 12px 0;
+    margin: 6px 0;
   }
 
   /* Meta */
@@ -298,7 +304,7 @@
   .meta-row #sutro { min-width: 170px; }
 
   .site-code-row {
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     font-size: var(--fs-md);
     display: flex;
     align-items: center;
@@ -325,7 +331,7 @@
   .amounts {
     display: flex;
     justify-content: center;
-    margin: 16px 0 12px;
+    margin: 6px 0 6px;
   }
   .amounts table {
     border-collapse: collapse;
@@ -695,8 +701,10 @@
 
     // Force desktop width during capture for consistent voucher size on any device
     const prevWidth = node.style.width;
+    const prevHeight = node.style.height;
     const prevMaxW = node.style.maxWidth;
-    node.style.width = '820px';
+    node.style.width = '794px';
+    node.style.height = '559px';
     node.style.maxWidth = 'none';
     node.classList.add('render-desktop');
 
@@ -742,8 +750,9 @@
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
-        width: 820,
-        windowWidth: 820
+        width: 794,
+        height: 559,
+        windowWidth: 794
       });
       return canvas;
     } finally {
@@ -752,6 +761,7 @@
         span.remove();
       });
       node.style.width = prevWidth;
+      node.style.height = prevHeight;
       node.style.maxWidth = prevMaxW;
       node.classList.remove('render-desktop');
       // Restore original input widths (mobile state)
