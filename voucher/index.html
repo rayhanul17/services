@@ -17,12 +17,26 @@
     font-style: normal;
     font-display: swap;
   }
+  @font-face {
+    font-family: 'Shurjo';
+    src: url('fonts/ShurjoWeb_400_v5_1.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Shurjo';
+    src: url('fonts/ShurjoWeb_700_v5_1.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
   /* Allow browser to synthesize bold from the regular file */
   html { -webkit-font-synthesis: weight; font-synthesis: weight; }
 
   :root {
     --font: 'Noto Serif Bengali Local', serif;
-    --font-num: 'Noto Serif Bengali Local', 'Noto Sans Bengali', serif;
+    --font-num: 'Shurjo', 'Noto Serif Bengali Local', 'Noto Sans Bengali', sans-serif;
     --font-display: 'Noto Serif Bengali Local', serif;
     --font-script: 'Noto Serif Bengali Local', serif;
     --red: #c62828;
@@ -671,6 +685,8 @@
         await Promise.all([
           document.fonts.load('400 16px "Noto Serif Bengali Local"'),
           document.fonts.load('700 16px "Noto Serif Bengali Local"'),
+          document.fonts.load('400 16px "Shurjo"'),
+          document.fonts.load('700 16px "Shurjo"'),
           document.fonts.load('400 16px "Noto Sans Bengali"'),
           document.fonts.load('700 16px "Noto Sans Bengali"'),
         ]);
