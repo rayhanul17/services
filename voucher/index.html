@@ -779,12 +779,35 @@
     }
   }
 
+  // A5 portrait in CSS pixels at 96dpi: 148mm × 210mm → 559 × 794 px
+  // Scale 2 for retina sharpness → 1118 × 1588 px output canvas.
+  function fitToA5(srcCanvas) {
+    const A5_W = 559, A5_H = 794, SCALE = 2, MARGIN = 16; // 16 css px ≈ 4.2mm margin
+    const out = document.createElement('canvas');
+    out.width = A5_W * SCALE;
+    out.height = A5_H * SCALE;
+    const ctx = out.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, out.width, out.height);
+
+    const maxW = (A5_W - MARGIN * 2) * SCALE;
+    const maxH = (A5_H - MARGIN * 2) * SCALE;
+    const ratio = srcCanvas.width / srcCanvas.height;
+    let w = maxW, h = w / ratio;
+    if (h > maxH) { h = maxH; w = h * ratio; }
+    const x = (out.width - w) / 2;
+    const y = (out.height - h) / 2;
+    ctx.drawImage(srcCanvas, x, y, w, h);
+    return out;
+  }
+
   document.getElementById('downloadPngBtn').addEventListener('click', (e) => {
     withBusy(e.currentTarget, 'Generating...', async () => {
       const canvas = await renderVoucher();
+      const a5 = fitToA5(canvas);
       const link = document.createElement('a');
       link.download = filename('png');
-      link.href = canvas.toDataURL('image/png');
+      link.href = a5.toDataURL('image/png');
       link.click();
       bumpStat('png', 'statPng');
     });
