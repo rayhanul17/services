@@ -793,22 +793,29 @@
   document.getElementById('downloadPdfBtn').addEventListener('click', (e) => {
     withBusy(e.currentTarget, 'Generating...', async () => {
       const canvas = await renderVoucher();
-      // JPEG instead of PNG for PDF embed — ~5-10× smaller file with no visible
-      // quality loss for printed vouchers. PNG download keeps lossless quality.
       const imgData = canvas.toDataURL('image/jpeg', 0.9);
-
-      const cssPxToMm = 25.4 / 96;
-      const widthMm = (canvas.width / 2) * cssPxToMm;
-      const heightMm = (canvas.height / 2) * cssPxToMm;
 
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({
-        orientation: widthMm > heightMm ? 'landscape' : 'portrait',
+        orientation: 'portrait',
         unit: 'mm',
-        format: [widthMm, heightMm],
+        format: 'a5',
         compress: true
       });
-      pdf.addImage(imgData, 'JPEG', 0, 0, widthMm, heightMm, undefined, 'FAST');
+      const pageW = pdf.internal.pageSize.getWidth();   // 148
+      const pageH = pdf.internal.pageSize.getHeight();  // 210
+      const margin = 8;
+      const maxW = pageW - margin * 2;
+      const maxH = pageH - margin * 2;
+
+      // Preserve aspect ratio, fit within A5 minus margin.
+      const ratio = canvas.width / canvas.height;
+      let w = maxW;
+      let h = w / ratio;
+      if (h > maxH) { h = maxH; w = h * ratio; }
+      const x = (pageW - w) / 2;
+      const y = (pageH - h) / 2;
+      pdf.addImage(imgData, 'JPEG', x, y, w, h, undefined, 'FAST');
       pdf.save(filename('pdf'));
       bumpStat('pdf', 'statPdf');
     });
