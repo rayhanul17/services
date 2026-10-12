@@ -5,6 +5,7 @@ Collection of independent, publicly-hosted utility tools. Each service lives in 
 ## Live URLs
 
 - Index: [rayhanul17.github.io/services](https://rayhanul17.github.io/services/)
+- Tower of Hanoi: [rayhanul17.github.io/services/learn_th](https://rayhanul17.github.io/services/learn_th/)
 - Voucher: [rayhanul17.github.io/services/voucher](https://rayhanul17.github.io/services/voucher/)
 
 ## Adding a new service
@@ -17,7 +18,8 @@ Collection of independent, publicly-hosted utility tools. Each service lives in 
 <!-- markdownlint-disable MD060 -->
 ## Available services
 
-| Service | Folder               | Description                                      |
-|---------|----------------------|--------------------------------------------------|
-| Voucher | [voucher/](voucher/) | মেসার্স অর্পা কনস্ট্রাকশন site voucher generator |
+| Service | Folder                  | Description                                         |
+|---------|-------------------------|-----------------------------------------------------|
+| Tower of Hanoi | [learn_th/](learn_th/) | Interactive Tower of Hanoi learning game and solver |
+| Voucher | [voucher/](voucher/)    | মেসার্স অর্পা কনস্ট্রাকশন site voucher generator    |
 <!-- markdownlint-enable MD060 -->

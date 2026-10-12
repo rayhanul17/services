@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tower of Hanoi — Modern</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:'Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    color:#e8ecf8;
+    background:
+      radial-gradient(1100px 700px at 8% -10%, rgba(56,89,255,.28), transparent 60%),
+      radial-gradient(900px 700px at 105% 0%, rgba(168,85,247,.22), transparent 55%),
+      radial-gradient(900px 700px at 50% 115%, rgba(34,211,238,.16), transparent 60%),
+      #070b18;
+    min-height:100vh;
+    display:flex;justify-content:center;
+    padding:22px 16px 44px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ================= LAYOUT ================= */
+  .app{
+    width:min(1200px,100%);
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 340px;
+    grid-template-rows:auto auto auto auto;
+    grid-template-areas:
+      "top    top"
+      "board  dash"
+      "levels levels"
+      "log    log";
+    gap:16px;
+    align-content:start;
+  }
+  .topbar{grid-area:top}
+  .board-wrap{grid-area:board}
+  .dash{grid-area:dash}
+  .levels-card{grid-area:levels}
+  .log-card{grid-area:log}
+
+  .card,.topbar{
+    background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.018));
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:20px;
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    box-shadow:0 20px 50px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.07);
+  }
+
+  /* ================= TOPBAR ================= */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;padding:14px 18px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;min-width:0}
+  .logo{
+    width:44px;height:44px;border-radius:14px;display:grid;place-items:center;
+    font-size:20px;font-weight:900;color:#08101f;
+    background:linear-gradient(135deg,#22d3ee,#6366f1 55%,#a855f7);
+    box-shadow:0 8px 24px rgba(99,102,241,.45);
+    flex-shrink:0;
+  }
+  h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.2px}
+  .tagline{margin:3px 0 0;font-size:11.5px;color:#8b96b8}
+
+  .user-chip{
+    display:flex;align-items:center;gap:10px;
+    padding:6px 8px 6px 14px;border-radius:13px;
+    background:linear-gradient(135deg, rgba(34,211,238,.16), rgba(168,85,247,.16));
+    border:1px solid rgba(255,255,255,.14);
+    flex-shrink:0;
+  }
+  .user-chip .avatar{
+    width:28px;height:28px;border-radius:9px;display:grid;place-items:center;
+    font-size:13px;font-weight:800;color:#08101f;
+    background:linear-gradient(135deg,#7dd3fc,#a78bfa);
+    flex-shrink:0;
+  }
+  .user-chip .name{
+    font-size:12.5px;font-weight:700;max-width:140px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .user-chip button{
+    appearance:none;font:inherit;font-size:11px;font-weight:600;
+    padding:6px 10px;border-radius:9px;cursor:pointer;color:#e8ecf8;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.06);
+    transition:background .15s;
+    flex-shrink:0;
+  }
+  .user-chip button:hover{background:rgba(255,255,255,.14)}
+
+  .hud{display:flex;gap:10px;flex-wrap:wrap}
+  .hud-item{
+    min-width:104px;padding:8px 13px;border-radius:13px;
+    background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.09);
+    display:flex;flex-direction:column;gap:2px;
+  }
+  .hud-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7d89ad}
+  .hud-value{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;transition:color .2s}
+  .hud-value.danger{color:#ff7a90}
+
+  /* ================= BOARD ================= */
+  .board-wrap{padding:16px;display:flex;flex-direction:column;gap:14px}
+  .board{
+    position:relative;
+    display:flex;
+    align-items:stretch;
+    gap:12px;
+    height:400px;
+    padding:16px 12px 0;
+    border-radius:16px;
+    background:
+      radial-gradient(120% 80% at 50% 112%, rgba(99,102,241,.18), transparent 70%),
+      linear-gradient(180deg, rgba(8,12,26,.55), rgba(8,12,26,.22));
+    border:1px solid rgba(255,255,255,.07);
+    overflow:hidden;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .peg{
+    position:relative;flex:1;height:100%;cursor:pointer;
+    border-radius:14px;
+    transition:background .2s, box-shadow .2s;
+  }
+  .peg:hover{background:rgba(255,255,255,.035)}
+  .peg.active{background:rgba(110,231,249,.07);box-shadow:inset 0 0 0 1px rgba(110,231,249,.35)}
+  .rod{
+    position:absolute;left:50%;bottom:18px;transform:translateX(-50%);
+    width:10px;height:calc(100% - 50px);
+    border-radius:6px;
+    background:linear-gradient(180deg,#4b5678,#232b47);
+    box-shadow:inset 0 0 8px rgba(0,0,0,.55), 0 0 22px rgba(0,0,0,.35);
+  }
+  .base{
+    position:absolute;bottom:0;left:5%;right:5%;height:14px;border-radius:8px;
+    background:linear-gradient(180deg,#3b4568,#1e2540);
+    box-shadow:0 8px 18px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.14);
+  }
+  .stack{
+    position:absolute;left:0;right:0;bottom:18px;z-index:2;
+    display:flex;flex-direction:column-reverse;align-items:center;
+    gap:var(--gap,5px);
+  }
+  .disk{
+    height:var(--dh,22px);
+    border-radius:7px;
+    position:relative;
+    transition:transform .18s cubic-bezier(.34,1.4,.64,1), box-shadow .18s;
+  }
+  .disk::after{
+    content:'';position:absolute;left:10%;right:10%;top:2px;height:3px;
+    border-radius:4px;background:rgba(255,255,255,.35);
+  }
+  .disk.selected{
+    transform:translateY(-12px) scale(1.03);
+    z-index:5;
+    box-shadow:0 0 0 2px rgba(110,231,249,.95), 0 10px 24px rgba(110,231,249,.35) !important;
+  }
+  .peg-label{
+    position:absolute;top:4px;left:50%;transform:translateX(-50%);
+    font-size:10.5px;letter-spacing:.22em;color:#6b769a;font-weight:700;
+  }
+  @keyframes shake{
+    10%,90%{transform:translateX(-2px)}
+    20%,80%{transform:translateX(3px)}
+    30%,50%,70%{transform:translateX(-5px)}
+    40%,60%{transform:translateX(5px)}
+  }
+  .peg.shake{animation:shake .42s ease}
+
+  @keyframes correctGlow {
+    0%   { box-shadow: inset 0 0 0 1px transparent; background: transparent; }
+    40%  { box-shadow: inset 0 0 0 3px rgba(110,231,183,.9); background: rgba(110,231,183,.1); }
+    100% { box-shadow: inset 0 0 0 1px transparent; background: transparent; }
+  }
+  .peg.correct { animation: correctGlow .6s ease; }
+
+  @keyframes wrongShake {
+    10%,90%{transform:translateX(-3px)}
+    20%,80%{transform:translateX(4px)}
+    30%,50%,70%{transform:translateX(-6px)}
+    40%,60%{transform:translateX(6px)}
+  }
+  .peg.wrong {
+    animation: wrongShake .45s ease;
+    box-shadow: inset 0 0 0 2px rgba(255,113,133,.8);
+    background: rgba(255,113,133,.09);
+  }
+
+  @keyframes hintPulse {
+    0%,100%{box-shadow: inset 0 0 0 1px transparent;}
+    50%    {box-shadow: inset 0 0 0 3px rgba(110,231,249,.9);}
+  }
+  .peg.hint { animation: hintPulse .6s ease 3; }
+
+  /* ================= LEARN PANEL ================= */
+  .learn-panel{
+    display:flex;align-items:center;gap:12px;
+    padding:12px 14px;
+    border-radius:14px;
+    background:linear-gradient(135deg, rgba(34,211,238,.14), rgba(168,85,247,.1));
+    border:1px solid rgba(110,231,249,.4);
+    box-shadow:0 0 24px rgba(110,231,249,.12), inset 0 1px 0 rgba(255,255,255,.08);
+    animation: pop .25s ease;
+  }
+  .learn-panel[hidden]{display:none}
+  .learn-panel.correct{
+    border-color:rgba(110,231,183,.75);
+    background:linear-gradient(135deg, rgba(110,231,183,.16), rgba(52,211,153,.08));
+    box-shadow:0 0 24px rgba(110,231,183,.2), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .learn-panel.wrong{
+    border-color:rgba(255,113,133,.7);
+    background:linear-gradient(135deg, rgba(255,113,133,.16), rgba(244,63,94,.08));
+    box-shadow:0 0 24px rgba(255,113,133,.18), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .learn-icon{
+    font-size:19px;line-height:1;flex-shrink:0;
+    width:32px;height:32px;border-radius:10px;
+    display:grid;place-items:center;
+    background:rgba(255,255,255,.08);
+  }
+  .learn-text{
+    flex:1;min-width:0;
+    font-size:12.5px;line-height:1.4;
+    color:#c3cbe6;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .learn-text b{color:#7dd3fc;font-weight:700}
+  .learn-text .ok{color:#6ee7b7}
+  .learn-text .bad{color:#ff8fa1}
+  .learn-step{
+    font-size:11.5px;font-weight:700;
+    color:#7dd3fc;
+    font-variant-numeric:tabular-nums;
+    padding:4px 9px;border-radius:8px;
+    background:rgba(110,231,249,.14);
+    border:1px solid rgba(110,231,249,.3);
+    flex-shrink:0;
+  }
+  .learn-panel.correct .learn-step{
+    color:#6ee7b7;background:rgba(110,231,183,.14);border-color:rgba(110,231,183,.3);
+  }
+  .learn-panel.wrong .learn-step{
+    color:#ff8fa1;background:rgba(255,113,133,.14);border-color:rgba(255,113,133,.3);
+  }
+  .btn.ghost{
+    background:rgba(255,255,255,.06);
+    border-color:rgba(255,255,255,.16);
+    font-size:11.5px;padding:7px 12px;
+  }
+  .btn.ghost:hover{background:rgba(255,255,255,.14)}
+
+  /* ================= CONTROLS ================= */
+  .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .btn{
+    appearance:none;font:inherit;font-size:13px;font-weight:600;
+    padding:10px 17px;border-radius:12px;cursor:pointer;color:#e8ecf8;
+    border:1px solid rgba(255,255,255,.14);
+    background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.045));
+    transition:transform .15s, background .15s, box-shadow .15s, border-color .15s, color .15s;
+  }
+  .btn:hover{background:linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,.08));transform:translateY(-1px)}
+  .btn:active{transform:translateY(0) scale(.98)}
+  .btn.primary{
+    border-color:transparent;color:#06111f;
+    background:linear-gradient(135deg,#22d3ee,#6366f1);
+    box-shadow:0 10px 26px rgba(56,120,255,.4);
+  }
+  .btn.primary:hover{box-shadow:0 14px 32px rgba(56,120,255,.55)}
+  .btn.danger{
+    border-color:rgba(251,113,133,.35);
+    background:linear-gradient(180deg, rgba(251,113,133,.18), rgba(251,113,133,.06));
+    color:#ffc2cc;
+  }
+  .btn.learn-on{
+    border-color:rgba(110,231,249,.75);
+    background:linear-gradient(180deg, rgba(110,231,249,.28), rgba(110,231,249,.1));
+    color:#7dd3fc;
+    box-shadow:0 0 22px rgba(110,231,249,.28);
+  }
+  .btn.learn-on:hover{
+    background:linear-gradient(180deg, rgba(110,231,249,.36), rgba(110,231,249,.16));
+  }
+  .hint{margin-left:auto;font-size:11.5px;color:#7d89ad;text-align:right;max-width:280px;line-height:1.5}
+  .hint b{
+    display:inline-block;padding:0 5px;border-radius:4px;
+    background:rgba(255,255,255,.07);color:#c3cbe6;
+  }
+
+  /* ================= DASHBOARD ================= */
+  .dash{padding:14px;display:flex;flex-direction:column;gap:12px}
+  .panel{
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:15px;padding:13px;
+  }
+  .panel-title{
+    font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+    color:#7d89ad;margin:0 0 10px;font-weight:600;
+  }
+  .big-score{
+    font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1;
+    background:linear-gradient(135deg,#7dd3fc,#a78bfa 60%,#f0abfc);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    font-variant-numeric:tabular-nums;
+  }
+  .sub{font-size:12px;color:#8b96b8;margin-top:8px;display:flex;justify-content:space-between}
+  .sub b{color:#e8ecf8;font-variant-numeric:tabular-nums}
+  .step-row{display:flex;gap:10px}
+  .step-row>div{
+    flex:1;display:flex;flex-direction:column;gap:3px;
+    background:rgba(255,255,255,.04);padding:9px 11px;border-radius:11px;
+  }
+  .step-row b{font-size:17px;font-variant-numeric:tabular-nums}
+  .muted{color:#7d89ad;font-size:11px}
+  .progress{height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin:11px 0 8px}
+  .bar{height:100%;width:0;border-radius:99px;transition:width .25s ease, background .25s;
+       background:linear-gradient(90deg,#22d3ee,#818cf8)}
+  .bar.over{background:linear-gradient(90deg,#fb7185,#f43f5e)}
+
+  /* ================= PER-LEVEL SCORES ================= */
+  .levels-card{padding:16px 18px 18px}
+  .levels-head{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;margin-bottom:14px;
+  }
+  .levels-head .panel-title{margin:0}
+  .levels-sum{
+    font-size:11.5px;font-weight:600;color:#7d89ad;
+    font-variant-numeric:tabular-nums;letter-spacing:.02em;
+  }
+  .levels-sum b{color:#7dd3fc}
+
+  .level-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(104px, 1fr));
+    gap:9px;
+  }
+  .level-item{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:5px;padding:11px 8px 12px;
+    border-radius:13px;text-align:center;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.075);
+    transition:transform .16s, border-color .2s, background .2s, opacity .2s, box-shadow .2s;
+  }
+  .level-item:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.18)}
+  .level-item .lv{
+    font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:#7d89ad;font-weight:700;
+  }
+  .level-item .sc{
+    font-size:15.5px;font-weight:800;letter-spacing:-.3px;
+    font-variant-numeric:tabular-nums;color:#6ee7b7;line-height:1.1;
+  }
+  .level-item .sc.empty{color:#525c7a;font-weight:600}
+  .level-item .sc.live{color:#7dd3fc}
+
+  .level-item.current{
+    border-color:rgba(110,231,249,.65);
+    background:linear-gradient(180deg, rgba(110,231,249,.16), rgba(168,85,247,.1));
+    box-shadow:0 0 22px rgba(110,231,249,.18), inset 0 1px 0 rgba(255,255,255,.1);
+  }
+  .level-item.current .lv{color:#7dd3fc}
+  .level-item.locked{opacity:.4}
+  .level-item.locked:hover{transform:none}
+
+  /* ================= MOVE LOG ================= */
+  .log-card{padding:0;overflow:hidden}
+  .log-toggle{
+    width:100%;
+    appearance:none;font:inherit;text-align:left;
+    display:flex;align-items:center;gap:14px;
+    padding:16px 20px;
+    background:transparent;border:none;cursor:pointer;color:#e8ecf8;
+    transition:background .15s;
+  }
+  .log-toggle:hover{background:rgba(255,255,255,.045)}
+  .log-toggle:active{background:rgba(255,255,255,.07)}
+  .log-toggle-label{
+    font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+    color:#7d89ad;font-weight:700;
+  }
+  .log-count{
+    margin-left:auto;
+    font-size:11.5px;font-weight:600;color:#8b96b8;
+    font-variant-numeric:tabular-nums;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    max-width:60%;
+  }
+  .log-chev{
+    font-size:12px;color:#7d89ad;line-height:1;
+    transition:transform .25s ease;
+    flex-shrink:0;
+  }
+  .log-card.open .log-chev{transform:rotate(180deg)}
+
+  .log-body{
+    max-height:0;
+    overflow:hidden;
+    transition:max-height .32s ease;
+  }
+  .log-card.open .log-body{max-height:340px}
+  .log-body-inner{padding:0 20px 18px}
+
+  .log{
+    list-style:none;margin:0;padding:0;
+    max-height:290px;overflow-y:auto;
+    display:flex;flex-direction:column;gap:5px;
+  }
+  .log li{
+    display:grid;
+    grid-template-columns:44px 1fr 70px 80px;
+    gap:10px;align-items:center;
+    font-size:12.5px;padding:8px 12px;border-radius:10px;
+    background:rgba(255,255,255,.035);
+    animation:pop .2s ease;
+  }
+  @keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .log li.empty{
+    grid-template-columns:1fr;text-align:center;
+    color:#7d89ad;background:transparent;padding:14px 0;
+  }
+  .log li.correct{background:linear-gradient(90deg, rgba(110,231,183,.12), rgba(110,231,183,.04));}
+  .log li.wrong  {background:linear-gradient(90deg, rgba(255,113,133,.12), rgba(255,113,133,.04));}
+  .log-n{color:#7d89ad;font-variant-numeric:tabular-nums}
+  .log-m{color:#c3cbe6;font-weight:600;letter-spacing:.03em}
+  .log-t{color:#7d89ad;font-variant-numeric:tabular-nums;font-size:11.5px;text-align:right}
+  .log-p{color:#6ee7b7;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+  .log-p.bad{color:#ff8fa1}
+  .log::-webkit-scrollbar{width:6px}
+  .log::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:99px}
+
+  /* ================= MODAL ================= */
+  .overlay{
+    position:fixed;inset:0;z-index:50;
+    display:grid;place-items:center;padding:20px;
+    background:rgba(4,7,16,.74);
+    backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+    opacity:0;pointer-events:none;transition:opacity .22s;
+  }
+  .overlay.show{opacity:1;pointer-events:auto}
+  .modal{
+    width:min(430px,100%);
+    border-radius:22px;padding:26px 24px;
+    background:linear-gradient(180deg,rgba(24,31,56,.97),rgba(11,16,32,.99));
+    border:1px solid rgba(255,255,255,.13);
+    box-shadow:0 34px 80px rgba(0,0,0,.65);
+    text-align:center;
+    transform:translateY(16px) scale(.96);
+    transition:transform .28s cubic-bezier(.34,1.4,.64,1);
+  }
+  .overlay.show .modal{transform:none}
+  .modal-icon{font-size:44px;line-height:1;margin-bottom:10px}
+  .modal h2{margin:0 0 8px;font-size:20px;letter-spacing:-.2px}
+  .modal p{margin:0;font-size:13px;color:#98a2c4;line-height:1.55}
+  .modal-stats{display:flex;flex-direction:column;gap:7px;margin:18px 0 20px;font-size:13px}
+  .modal-stats>div{
+    display:flex;justify-content:space-between;padding:9px 13px;border-radius:11px;
+    background:rgba(255,255,255,.05);
+  }
+  .modal-stats .total{
+    background:linear-gradient(135deg,rgba(34,211,238,.2),rgba(168,85,247,.2));
+    font-weight:700;
+  }
+  .modal-stats .best{justify-content:center;color:#fbbf24;background:transparent;font-weight:600}
+  .modal-stats b.bad{color:#ff7a90}
+  .modal-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+  /* ================= USERNAME GATE ================= */
+  .name-overlay{
+    position:fixed;inset:0;z-index:80;
+    display:grid;place-items:center;padding:20px;
+    background:rgba(4,7,16,.82);
+    backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+    opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  .name-overlay.show{opacity:1;pointer-events:auto}
+  .name-card{
+    width:min(400px,100%);
+    border-radius:24px;padding:30px 26px 26px;
+    background:linear-gradient(180deg,rgba(24,31,56,.98),rgba(11,16,32,.99));
+    border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 34px 90px rgba(0,0,0,.7);
+    text-align:center;
+    transform:translateY(16px) scale(.96);
+    transition:transform .3s cubic-bezier(.34,1.4,.64,1);
+  }
+  .name-overlay.show .name-card{transform:none}
+  .name-card .logo{
+    width:56px;height:56px;border-radius:17px;font-size:26px;
+    margin:0 auto 14px;
+  }
+  .name-card h2{margin:0 0 6px;font-size:19px;letter-spacing:-.2px}
+  .name-card p{margin:0 0 20px;font-size:12.5px;color:#98a2c4;line-height:1.55}
+  .name-card input{
+    width:100%;font:inherit;font-size:15px;font-weight:600;
+    padding:13px 16px;border-radius:13px;color:#e8ecf8;
+    background:rgba(255,255,255,.055);
+    border:1px solid rgba(255,255,255,.16);
+    outline:none;transition:border-color .15s, background .15s;
+    margin-bottom:12px;
+  }
+  .name-card input:focus{
+    border-color:rgba(110,231,249,.75);
+    background:rgba(255,255,255,.09);
+  }
+  .name-card .err{
+    font-size:11.5px;color:#ff8fa1;min-height:15px;margin-bottom:10px;
+  }
+  .name-card .btn{width:100%;padding:13px}
+  .saved-users{
+    margin-top:16px;padding-top:14px;
+    border-top:1px dashed rgba(255,255,255,.12);
+    text-align:left;
+  }
+  .saved-users .lbl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7d89ad;margin-bottom:8px}
+  .saved-users .list{display:flex;flex-wrap:wrap;gap:6px}
+  .saved-users button{
+    appearance:none;font:inherit;font-size:12px;font-weight:600;
+    padding:7px 12px;border-radius:10px;cursor:pointer;color:#c3cbe6;
+    border:1px solid rgba(255,255,255,.13);
+    background:rgba(255,255,255,.05);
+    transition:background .15s,border-color .15s,color .15s;
+  }
+  .saved-users button:hover{background:rgba(110,231,249,.14);border-color:rgba(110,231,249,.5);color:#e8ecf8}
+
+  /* ================= TOAST ================= */
+  .toast{
+    position:fixed;left:50%;bottom:28px;z-index:90;
+    transform:translate(-50%,18px);
+    padding:11px 20px;border-radius:13px;font-size:13px;font-weight:500;
+    background:rgba(20,26,48,.96);
+    border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 16px 40px rgba(0,0,0,.5);
+    opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;
+    max-width:calc(100vw - 40px);
+    text-align:center;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast.warn{border-color:rgba(251,113,133,.5);color:#ffc2cc}
+  .toast.ok{border-color:rgba(110,231,183,.5);color:#a7f3d0}
+
+  /* ================= MOBILE ================= */
+  @media (max-width:880px){
+    body{padding:14px 12px 40px}
+
+    .app{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      width:100%;
+    }
+    .topbar,.board-wrap,.dash,.levels-card,.log-card{
+      grid-area:auto;width:100%;position:relative;
+    }
+
+    .topbar{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr) auto;
+      grid-template-areas:
+        "brand chip"
+        "hud   hud";
+      gap:12px 10px;
+      padding:14px;
+      align-items:center;
+    }
+    .brand{grid-area:brand;min-width:0;gap:10px;}
+    .brand > div:last-child{min-width:0;overflow:hidden;}
+    .brand .logo{
+      width:38px;height:38px;font-size:17px;border-radius:12px;
+      box-shadow:0 6px 18px rgba(99,102,241,.4);
+      flex-shrink:0;
+    }
+    .brand h1{
+      font-size:14.5px;white-space:nowrap;
+      overflow:hidden;text-overflow:ellipsis;
+    }
+    .brand .tagline{
+      font-size:10px;white-space:nowrap;
+      overflow:hidden;text-overflow:ellipsis;
+    }
+
+    .user-chip{
+      grid-area:chip;padding:4px 4px 4px 9px;gap:6px;
+      border-radius:11px;flex-shrink:0;max-width:150px;
+    }
+    .user-chip .avatar{width:24px;height:24px;font-size:11px;border-radius:8px;flex-shrink:0;}
+    .user-chip .name{
+      font-size:11.5px;max-width:56px;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+    }
+    .user-chip button{padding:5px 9px;font-size:10.5px;border-radius:8px;flex-shrink:0;}
+
+    .hud{grid-area:hud;width:100%;gap:8px;}
+    .hud-item{flex:1;min-width:0;padding:8px 10px;border-radius:11px;}
+    .hud-label{font-size:9.5px;letter-spacing:.1em}
+    .hud-value{font-size:14px}
+
+    .board{height:290px}
+    .board-wrap{padding:14px;gap:12px}
+
+    /* Learn panel mobile */
+    .learn-panel{
+      padding:10px 12px;
+      gap:10px;
+      flex-wrap:wrap;
+      border-radius:12px;
+    }
+    .learn-icon{width:28px;height:28px;font-size:16px;border-radius:9px}
+    .learn-text{font-size:11.5px;order:2;flex:1 0 100%;}
+    .learn-step{font-size:10.5px;padding:3px 8px;order:3}
+    .learn-panel .btn.ghost{order:4;padding:6px 10px;font-size:11px;margin-left:auto}
+
+    /* Controls: 2-col grid; Learn button full width on top */
+    .controls{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .controls #btnLearn{
+      grid-column:1 / -1;
+    }
+    .controls .btn{
+      width:100%;
+      padding:12px 10px;
+      font-size:12.5px;
+      text-align:center;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      white-space:nowrap;
+    }
+    .controls .hint{
+      grid-column:1 / -1;
+      margin:4px 0 0;
+      padding:10px 4px 0;
+      text-align:center;
+      font-size:10.5px;
+      line-height:1.6;
+      color:#8b96b8;
+      border-top:1px dashed rgba(255,255,255,.08);
+      max-width:none;
+      width:100%;
+    }
+
+    .dash{padding:12px;gap:10px}
+    .panel{padding:12px}
+    .big-score{font-size:30px}
+
+    .levels-card{padding:14px}
+    .levels-head{margin-bottom:11px}
+    .level-grid{
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:7px;
+    }
+    .level-item{padding:9px 5px 10px;gap:3px;border-radius:11px;}
+    .level-item .lv{font-size:8.5px;letter-spacing:.1em}
+    .level-item .sc{font-size:13.5px}
+
+    .log-toggle{padding:14px 16px;gap:10px}
+    .log-count{font-size:11px}
+    .log-body-inner{padding:0 16px 16px}
+    .log li{
+      grid-template-columns:36px 1fr 52px 62px;
+      gap:8px;font-size:11.5px;padding:7px 10px;
+    }
+    .log-t{font-size:10.5px}
+  }
+
+  @media (max-width:400px){
+    .brand h1{font-size:13.5px}
+    .brand .tagline{font-size:9.5px}
+    .user-chip{padding:3px 3px 3px 8px;gap:5px;max-width:130px}
+    .user-chip .name{max-width:44px;font-size:11px}
+    .user-chip button{padding:4px 7px;font-size:10px}
+    .user-chip .avatar{width:22px;height:22px;font-size:10px}
+    .controls .btn{font-size:12px;padding:11px 8px}
+    .level-grid{grid-template-columns:repeat(3, minmax(0, 1fr));gap:6px}
+    .level-item .lv{font-size:8px}
+    .level-item .sc{font-size:12.5px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ USERNAME GATE ============ -->
+<div class="name-overlay" id="nameOverlay">
+  <div class="name-card">
+    <div class="logo">◈</div>
+    <h2>Tower of Hanoi</h2>
+    <p>Enter a player name to load or start your progress.<br>Each player keeps their own saved game.</p>
+    <input id="nameInput" type="text" placeholder="Your name…" maxlength="20" autocomplete="off" spellcheck="false">
+    <div class="err" id="nameErr"></div>
+    <button class="btn primary" id="nameBtn">Continue →</button>
+    <div class="saved-users" id="savedUsersWrap" style="display:none">
+      <div class="lbl">Saved players</div>
+      <div class="list" id="savedUsersList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- ====== TOP BAR ====== -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">◈</div>
+      <div>
+        <h1>Tower of Hanoi</h1>
+        <p class="tagline">Clear each level in exactly 2<sup>n</sup> − 1 moves</p>
+      </div>
+    </div>
+    <div class="hud">
+      <div class="hud-item"><span class="hud-label">Level</span><span class="hud-value" id="hudLevel">1</span></div>
+      <div class="hud-item"><span class="hud-label">Moves</span><span class="hud-value" id="hudMoves">0 / 1</span></div>
+      <div class="hud-item"><span class="hud-label">Time</span><span class="hud-value" id="hudTime">00:00.0</span></div>
+    </div>
+    <div class="user-chip">
+      <div class="avatar" id="userAvatar">?</div>
+      <div class="name" id="userName">Guest</div>
+      <button id="btnSwitch" title="Switch player">Switch</button>
+    </div>
+  </header>
+
+  <!-- ====== BOARD ====== -->
+  <section class="card board-wrap">
+    <div class="board" id="board">
+      <div class="peg" data-peg="0">
+        <div class="rod"></div><div class="stack"></div><div class="base"></div>
+        <span class="peg-label">A</span>
+      </div>
+      <div class="peg" data-peg="1">
+        <div class="rod"></div><div class="stack"></div><div class="base"></div>
+        <span class="peg-label">B</span>
+      </div>
+      <div class="peg" data-peg="2">
+        <div class="rod"></div><div class="stack"></div><div class="base"></div>
+        <span class="peg-label">C</span>
+      </div>
+    </div>
+
+    <!-- ====== LEARN PANEL ====== -->
+    <div class="learn-panel" id="learnPanel" hidden>
+      <div class="learn-icon" id="learnIcon">📚</div>
+      <div class="learn-text" id="learnText">Make the optimal move.</div>
+      <div class="learn-step" id="learnStepBadge">0 / 0</div>
+      <button class="btn ghost" id="btnHint" type="button">💡 Hint</button>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="btnLearn">📚 Learn Mode</button>
+      <button class="btn" id="btnReset">↺ Reset Level</button>
+      <button class="btn danger" id="btnClear">🗑 Clear My Memory</button>
+      <div class="hint">Tap a peg to lift its top disk, then tap another to drop. Keys <b>1</b> <b>2</b> <b>3</b> also work.</div>
+    </div>
+  </section>
+
+  <!-- ====== DASHBOARD ====== -->
+  <aside class="card dash">
+    <div class="panel">
+      <div class="panel-title">Score</div>
+      <div class="big-score" id="totalScore">0</div>
+      <div class="sub"><span>Level score</span><b id="levelScore">0</b></div>
+      <div class="sub"><span>Best this level</span><b id="bestScore">—</b></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Per-step points</div>
+      <div class="step-row">
+        <div><span class="muted">Last move</span><b id="lastPts">—</b></div>
+        <div><span class="muted">Next move</span><b id="nextPts">100 pts</b></div>
+      </div>
+      <div class="progress"><div class="bar" id="moveBar"></div></div>
+      <div class="muted">Faster moves earn more. Slow moves decay down to 10 pts.</div>
+    </div>
+  </aside>
+
+  <!-- ====== PER-LEVEL SCORES ====== -->
+  <section class="card levels-card">
+    <div class="levels-head">
+      <div class="panel-title">Per-level scores</div>
+      <div class="levels-sum" id="levelsSum">0 / 10 cleared</div>
+    </div>
+    <div class="level-grid" id="levelGrid"></div>
+  </section>
+
+  <!-- ====== MOVE LOG ====== -->
+  <section class="card log-card" id="logCard">
+    <button class="log-toggle" id="logToggle" type="button" aria-expanded="false">
+      <span class="log-toggle-label">Move log</span>
+      <span class="log-count" id="logCount">No moves yet</span>
+      <span class="log-chev" id="logChev">▾</span>
+    </button>
+    <div class="log-body" id="logBody">
+      <div class="log-body-inner">
+        <ul class="log" id="log"></ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ====== MODAL ====== -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-icon" id="modalIcon">🏆</div>
+    <h2 id="modalTitle">Level Complete</h2>
+    <p id="modalSub"></p>
+    <div class="modal-stats" id="modalStats"></div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ===================================================================
+     ⚙️  OPTIMIZATION TIPS
+     ===================================================================
+     • MOVE_BASE  → Points awarded for an instant move (default 100).
+     • DECAY      → Points lost per second of thinking time (default 12).
+     • MIN_MOVE   → Minimum points a single move can earn (default 10).
+     • MAX_LEVEL  → Highest disk count / level reachable (default 10).
+     • SAVE_KEY   → Base localStorage key for per-user cache.
+     =================================================================== */
+  const MOVE_BASE = 100;
+  const DECAY     = 12;
+  const MIN_MOVE  = 10;
+  const MAX_LEVEL = 10;
+  const SAVE_KEY  = 'hanoi_modern_v1';
+
+  const USERS_KEY = 'hanoi_modern_users';
+  const PEG_NAMES = ['A', 'B', 'C'];
+
+  /* ================= ELEMENTS ================= */
+  const $ = id => document.getElementById(id);
+  const els = {
+    board:       $('board'),
+    pegs:        [...document.querySelectorAll('.peg')],
+    hudLevel:    $('hudLevel'),
+    hudMoves:    $('hudMoves'),
+    hudTime:     $('hudTime'),
+    totalScore:  $('totalScore'),
+    levelScore:  $('levelScore'),
+    bestScore:   $('bestScore'),
+    lastPts:     $('lastPts'),
+    nextPts:     $('nextPts'),
+    moveBar:     $('moveBar'),
+    levelGrid:   $('levelGrid'),
+    levelsSum:   $('levelsSum'),
+    logCard:     $('logCard'),
+    logToggle:   $('logToggle'),
+    logCount:    $('logCount'),
+    log:         $('log'),
+    overlay:     $('overlay'),
+    modalIcon:   $('modalIcon'),
+    modalTitle:  $('modalTitle'),
+    modalSub:    $('modalSub'),
+    modalStats:  $('modalStats'),
+    modalActions:$('modalActions'),
+    toast:       $('toast'),
+    nameOverlay:     $('nameOverlay'),
+    nameInput:       $('nameInput'),
+    nameErr:         $('nameErr'),
+    nameBtn:         $('nameBtn'),
+    savedUsersWrap:  $('savedUsersWrap'),
+    savedUsersList:  $('savedUsersList'),
+    userAvatar:      $('userAvatar'),
+    userName:        $('userName'),
+    btnSwitch:       $('btnSwitch'),
+    /* learn mode */
+    btnLearn:        $('btnLearn'),
+    learnPanel:      $('learnPanel'),
+    learnIcon:       $('learnIcon'),
+    learnText:       $('learnText'),
+    learnStepBadge:  $('learnStepBadge'),
+    btnHint:         $('btnHint')
+  };
+
+  /* ================= HELPERS ================= */
+  const top     = arr => arr.length ? arr[arr.length - 1] : undefined;
+  const optimal = n => Math.pow(2, n) - 1;
+  const clamp   = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  function fmtTime(ms) {
+    const t = Math.max(0, ms) / 1000;
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    const d = Math.floor((t * 10) % 10);
+    return String(m).padStart(2, '0') + ':' +
+           String(s).padStart(2, '0') + '.' + d;
+  }
+  function normalizeName(raw) {
+    return String(raw || '').trim().replace(/\s+/g, ' ').slice(0, 20);
+  }
+  function userKey(name) { return SAVE_KEY + ':' + name; }
+
+  /**
+   * Generate the optimal move sequence for the classic Hanoi puzzle.
+   *   n    = number of disks
+   *   from = source peg index (0)
+   *   to   = destination peg index (2)
+   *   via  = auxiliary peg index (1)
+   * Returns array of { disk, from, to } in order.
+   */
+  function generateSolution(n, from, to, via) {
+    const out = [];
+    (function helper(n, f, t, v) {
+      if (n === 0) return;
+      helper(n - 1, f, v, t);
+      out.push({ disk: n, from: f, to: t });
+      helper(n - 1, v, t, f);
+    })(n, from, to, via);
+    return out;
+  }
+
+  /* ================= USER REGISTRY ================= */
+  function getUsers() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+      return Array.isArray(raw) ? raw.filter(u => typeof u === 'string') : [];
+    } catch (e) { return []; }
+  }
+  function rememberUser(name) {
+    try {
+      const list = getUsers();
+      if (!list.includes(name)) {
+        list.push(name);
+        localStorage.setItem(USERS_KEY, JSON.stringify(list));
+      }
+    } catch (e) {}
+  }
+  function forgetUser(name) {
+    try {
+      const list = getUsers().filter(u => u !== name);
+      localStorage.setItem(USERS_KEY, JSON.stringify(list));
+    } catch (e) {}
+  }
+
+  /* ================= STATE ================= */
+  let state = null;
+  let currentUser = null;
+  let timerId = null;
+  let toastTimer = null;
+  let logOpen = false;
+  let learnMode = false;
+  let learnSolution = [];
+
+  function defaultState() {
+    return {
+      level: 1, banked: 0, levelScore: 0, best: {},
+      pegs: [[], [], []], moves: 0, selected: null, solved: false,
+      log: [], lastMoveAt: 0, lastStep: null,
+      elapsedBefore: 0, running: false, startTime: 0,
+      learnStep: 0
+    };
+  }
+
+  /* ================= TIMER ================= */
+  function elapsed() {
+    return state.elapsedBefore + (state.running ? Date.now() - state.startTime : 0);
+  }
+  function startTimer() {
+    if (state.running) return;
+    state.running = true;
+    state.startTime = Date.now();
+    if (timerId) clearInterval(timerId);
+    timerId = setInterval(tick, 100);
+  }
+  function stopTimer() {
+    if (state.running) {
+      state.elapsedBefore = elapsed();
+      state.running = false;
+    }
+    if (timerId) { clearInterval(timerId); timerId = null; }
+  }
+  function tick() {
+    els.hudTime.textContent = fmtTime(elapsed());
+    const dt = (elapsed() - state.lastMoveAt) / 1000;
+    els.nextPts.textContent =
+      Math.max(MIN_MOVE, Math.round(MOVE_BASE - dt * DECAY)) + ' pts';
+  }
+
+  /* ================= PERSISTENCE ================= */
+  function save() {
+    if (!currentUser || !state) return;
+    try {
+      localStorage.setItem(userKey(currentUser), JSON.stringify({
+        v: 1, user: currentUser, level: state.level,
+        banked: state.banked, levelScore: state.levelScore, best: state.best,
+        pegs: state.pegs, moves: state.moves, log: state.log.slice(0, 40),
+        lastMoveAt: state.lastMoveAt, elapsed: elapsed(), savedAt: Date.now()
+      }));
+    } catch (e) {}
+  }
+
+  function loadForUser(name) {
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(userKey(name)) || 'null'); } catch (e) {}
+    if (!d || d.v !== 1) return false;
+
+    state.level      = clamp(d.level || 1, 1, MAX_LEVEL);
+    state.banked     = d.banked || 0;
+    state.best       = d.best || {};
+    state.levelScore = d.levelScore || 0;
+
+    const total = Array.isArray(d.pegs) && d.pegs.length === 3
+      ? d.pegs.reduce((s, p) => s + (Array.isArray(p) ? p.length : 0), 0)
+      : -1;
+
+    const pegsOk =
+      Array.isArray(d.pegs) && d.pegs.length === 3 &&
+      d.pegs.every(p => Array.isArray(p)) &&
+      total === state.level &&
+      d.pegs[2].length !== state.level;
+
+    if (!pegsOk) { startLevel(state.level); return true; }
+
+    state.pegs          = d.pegs;
+    state.moves         = d.moves || 0;
+    state.log           = Array.isArray(d.log) ? d.log : [];
+    state.lastMoveAt    = d.lastMoveAt || 0;
+    state.elapsedBefore = d.elapsed || 0;
+    state.selected      = null;
+    state.solved        = false;
+    state.lastStep      = state.log.length ? state.log[0].pts : null;
+
+    render();
+    if (state.moves > 0) startTimer();
+    return true;
+  }
+
+  function clearCurrentUserData() {
+    if (!currentUser) return;
+    try { localStorage.removeItem(userKey(currentUser)); } catch (e) {}
+    forgetUser(currentUser);
+  }
+
+  /* ================= LEARN MODE ================= */
+  function setupLearnForLevel() {
+    if (!learnMode) { learnSolution = []; state.learnStep = 0; return; }
+    learnSolution = generateSolution(state.level, 0, 2, 1);
+    state.learnStep = 0;
+  }
+
+  function setLearnStatus(kind, text) {
+    els.learnPanel.classList.remove('correct', 'wrong');
+    if (kind === 'correct') {
+      els.learnPanel.classList.add('correct');
+      els.learnIcon.textContent = '✅';
+    } else if (kind === 'wrong') {
+      els.learnPanel.classList.add('wrong');
+      els.learnIcon.textContent = '❌';
+    } else {
+      els.learnIcon.textContent = '📚';
+    }
+    els.learnText.innerHTML = text;
+    const total = learnSolution.length || optimal(state.level);
+    els.learnStepBadge.textContent = (state.learnStep) + ' / ' + total;
+  }
+
+  function updateLearnUI() {
+    if (learnMode) {
+      els.btnLearn.classList.add('learn-on');
+      els.btnLearn.innerHTML = '✓ Learn Mode ON';
+      els.learnPanel.hidden = false;
+      setLearnStatus('idle',
+        'Follow the optimal path. Wrong moves will be rejected — tap <b>Hint</b> if stuck.');
+    } else {
+      els.btnLearn.classList.remove('learn-on');
+      els.btnLearn.innerHTML = '📚 Learn Mode';
+      els.learnPanel.hidden = true;
+    }
+  }
+
+  function toggleLearnMode() {
+    setLearnMode(!learnMode);
+  }
+
+  function setLearnMode(on) {
+    if (learnMode === on) return;
+    learnMode = on;
+    if (on) {
+      // Reset the level so we start from a clean state, then build solution
+      startLevel(state.level);
+      flash('Learn mode ON — follow the optimal solution.', 'ok');
+    } else {
+      learnSolution = [];
+      state.learnStep = 0;
+      updateLearnUI();
+      render();
+      flash('Learn mode OFF — try it yourself!');
+    }
+  }
+
+  function showHint() {
+    if (!learnMode) return;
+    const expected = learnSolution[state.learnStep];
+    if (!expected) {
+      flash('No more moves — solution complete.', 'ok');
+      return;
+    }
+    flash('Hint: move from ' + PEG_NAMES[expected.from] + ' → ' + PEG_NAMES[expected.to], 'ok');
+    // Pulse source peg
+    const el = els.pegs[expected.from];
+    el.classList.remove('hint');
+    void el.offsetWidth;
+    el.classList.add('hint');
+    setTimeout(() => el.classList.remove('hint'), 1900);
+  }
+
+  function onLearnComplete() {
+    state.solved = true;
+    state.selected = null;
+    stopTimer();
+
+    els.modalIcon.textContent  = '🎓';
+    els.modalTitle.textContent = 'Level ' + state.level + ' learned!';
+    els.modalSub.textContent   =
+      'You followed the optimal solution step by step. Ready to solve it on your own?';
+
+    els.modalStats.innerHTML = `
+      <div><span>Level</span><b>${state.level}</b></div>
+      <div><span>Steps followed</span><b>${learnSolution.length}</b></div>
+      <div><span>Optimal moves</span><b>${optimal(state.level)}</b></div>
+      <div class="total"><span>Result</span><b>Practice complete</b></div>
+    `;
+
+    els.modalActions.innerHTML = '';
+    addModalBtn('Practice alone', 'primary', () => {
+      closeModal();
+      setLearnMode(false);
+      startLevel(state.level);
+      flash('Learn mode off — solve it yourself!', 'ok');
+    });
+    if (state.level < MAX_LEVEL) {
+      addModalBtn('Learn Level ' + (state.level + 1) + ' →', '', () => {
+        closeModal();
+        // Keep learn mode on; startLevel will regenerate the solution
+        startLevel(state.level + 1);
+      });
+    }
+    openModal();
+  }
+
+  /* ================= GAME FLOW ================= */
+  function newGame() {
+    state = defaultState();
+    startLevel(1);
+  }
+
+  function startLevel(level, opts = {}) {
+    stopTimer();
+    state.level = clamp(level, 1, MAX_LEVEL);
+
+    state.pegs = [[], [], []];
+    for (let s = state.level; s >= 1; s--) state.pegs[0].push(s);
+
+    state.moves         = 0;
+    state.selected      = null;
+    state.solved        = false;
+    state.log           = [];
+    state.lastMoveAt    = 0;
+    state.lastStep      = null;
+    state.elapsedBefore = 0;
+    state.running       = false;
+    state.startTime     = 0;
+    state.learnStep     = 0;
+
+    if (opts.keepScore !== true) state.levelScore = 0;
+
+    // Regenerate learn solution for the new level if learn mode is active
+    setupLearnForLevel();
+    updateLearnUI();
+
+    render();
+    if (opts.save !== false) save();
+  }
+
+  function onPeg(index) {
+    if (!currentUser || state.solved) return;
+    if (!state.running) startTimer();
+
+    if (state.selected === null) {
+      if (!state.pegs[index].length) return;
+      state.selected = index;
+      render();
+      return;
+    }
+    if (state.selected === index) {
+      state.selected = null;
+      render();
+      return;
+    }
+    attemptMove(state.selected, index);
+  }
+
+  function attemptMove(from, to) {
+    const disk    = top(state.pegs[from]);
+    const destTop = top(state.pegs[to]);
+
+    // Rule: cannot place larger disk on smaller
+    if (destTop !== undefined && destTop < disk) {
+      shakePeg(to);
+      flash('A larger disk cannot sit on a smaller one.', 'warn');
+      return false;
+    }
+
+    /* ---------- LEARN MODE VALIDATION ---------- */
+    if (learnMode) {
+      const expected = learnSolution[state.learnStep];
+
+      if (!expected || expected.from !== from || expected.to !== to) {
+        // Wrong move — reject, do NOT apply
+        wrongPeg(to);
+        const hint = expected
+          ? 'Correct move is ' + PEG_NAMES[expected.from] + ' → ' + PEG_NAMES[expected.to] + '.'
+          : 'The solution is already complete.';
+        setLearnStatus('wrong', '<span class="bad">✗ Wrong move.</span> ' + hint);
+        flash('✗ Wrong move. ' + hint, 'warn');
+        return false;
+      }
+
+      // Correct move — apply it
+      state.pegs[from].pop();
+      state.pegs[to].push(disk);
+      state.selected = null;
+      state.learnStep++;
+
+      // Visual + textual confirmation
+      correctPeg(to);
+      const done = state.learnStep >= learnSolution.length;
+      setLearnStatus('correct',
+        done
+          ? '<span class="ok">✓ Perfect!</span> You solved it — the solution is complete.'
+          : '<span class="ok">✓ Correct!</span> Keep going…');
+
+      render();
+      checkWin();
+      return true;
+    }
+
+    /* ---------- NORMAL PLAY PATH ---------- */
+    state.pegs[from].pop();
+    state.pegs[to].push(disk);
+    state.selected = null;
+
+    if (!state.running) startTimer();
+
+    const now = elapsed();
+    const dt  = Math.max(0, (now - state.lastMoveAt) / 1000);
+    const pts = Math.max(MIN_MOVE, Math.round(MOVE_BASE - dt * DECAY));
+
+    state.moves++;
+    state.levelScore += pts;
+    state.lastMoveAt  = now;
+    state.lastStep    = pts;
+    state.log.unshift({ n: state.moves, from, to, dt, pts, ok: true });
+    if (state.log.length > 100) state.log.length = 100;
+
+    render();
+    checkWin();
+    save();
+    return true;
+  }
+
+  function checkWin() {
+    if (state.pegs[2].length !== state.level) return;
+    if (state.solved) return;
+
+    if (learnMode) {
+      onLearnComplete();
+      return;
+    }
+
+    state.solved = true;
+    state.selected = null;
+    stopTimer();
+
+    const lvl  = state.level;
+    const opt  = optimal(lvl);
+    const time = elapsed();
+
+    if (state.moves === opt) {
+      const par          = opt * 1.5 + 3;
+      const speedBonus   = Math.max(0, Math.round((par - time / 1000) * 15 * lvl));
+      const perfectBonus = 200 * lvl;
+      const movePts      = state.levelScore;
+      const earned       = movePts + speedBonus + perfectBonus;
+
+      state.levelScore = earned;
+      state.banked    += earned;
+
+      const prevBest = state.best[lvl] || 0;
+      const isBest   = earned > prevBest;
+      if (isBest) state.best[lvl] = earned;
+
+      if (lvl < MAX_LEVEL) startLevel(lvl + 1);
+      else { state.levelScore = 0; save(); }
+      render();
+
+      showWinModal({ level: lvl, earned, movePts, speedBonus, perfectBonus, time, isBest });
+    } else {
+      render();
+      save();
+      showFailModal({ level: lvl, moves: state.moves, opt });
+    }
+  }
+
+  /* ================= RENDER ================= */
+  function render() {
+    const n   = state.level;
+    const dh  = n <= 6 ? 22 : n <= 8 ? 17 : 13;
+    const gap = n <= 6 ? 5  : n <= 8 ? 4  : 3;
+
+    els.board.style.setProperty('--dh', dh + 'px');
+    els.board.style.setProperty('--gap', gap + 'px');
+
+    els.pegs.forEach((pegEl, i) => {
+      const stack = pegEl.querySelector('.stack');
+      stack.innerHTML = '';
+      const arr = state.pegs[i];
+
+      arr.forEach((size, idx) => {
+        const d = document.createElement('div');
+        d.className = 'disk';
+        const pct = 30 + (size / n) * 62;
+        d.style.width = pct.toFixed(1) + '%';
+        const hue = 190 + ((size - 1) / Math.max(1, n - 1)) * 150;
+        d.style.background =
+          `linear-gradient(180deg, hsl(${hue} 95% 74%), hsl(${hue} 88% 54%))`;
+        d.style.boxShadow =
+          `0 3px 10px hsla(${hue} 90% 30% / .55), inset 0 1px 0 rgba(255,255,255,.5)`;
+        if (state.selected === i && idx === arr.length - 1) d.classList.add('selected');
+        stack.appendChild(d);
+      });
+      pegEl.classList.toggle('active', state.selected === i);
+    });
+
+    const opt = optimal(n);
+    els.hudLevel.textContent = n;
+    els.hudMoves.textContent = state.moves + ' / ' + opt;
+    els.hudMoves.classList.toggle('danger', state.moves > opt);
+    els.hudTime.textContent  = fmtTime(elapsed());
+
+    els.totalScore.textContent = (state.banked + state.levelScore).toLocaleString();
+    els.levelScore.textContent = state.levelScore.toLocaleString();
+    const best = state.best[n];
+    els.bestScore.textContent  = best ? best.toLocaleString() : '—';
+    els.lastPts.textContent    = state.lastStep == null ? '—' : '+' + state.lastStep;
+
+    const pct = Math.min(100, (state.moves / opt) * 100);
+    els.moveBar.style.width = pct + '%';
+    els.moveBar.classList.toggle('over', state.moves > opt);
+
+    if (!state.running) els.nextPts.textContent = MOVE_BASE + ' pts';
+
+    renderLevelScores();
+    renderLog();
+  }
+
+  function renderLevelScores() {
+    const cur = state.level;
+    let html = '';
+    let cleared = 0;
+
+    for (let i = 1; i <= MAX_LEVEL; i++) {
+      const bestScore = state.best[i];
+      const isCurrent = i === cur;
+      const isLocked  = i > cur && !bestScore;
+      if (bestScore) cleared++;
+
+      let cls = 'level-item';
+      if (isCurrent) cls += ' current';
+      if (isLocked)  cls += ' locked';
+
+      let scoreTxt, scoreCls;
+      if (bestScore) {
+        scoreTxt = bestScore.toLocaleString();
+        scoreCls = 'sc';
+      } else if (isCurrent && state.levelScore > 0 && !learnMode) {
+        scoreTxt = state.levelScore.toLocaleString();
+        scoreCls = 'sc live';
+      } else {
+        scoreTxt = '—';
+        scoreCls = 'sc empty';
+      }
+
+      const title = bestScore
+        ? `Level ${i} — best ${bestScore.toLocaleString()}`
+        : (isCurrent ? `Level ${i} — in progress` : `Level ${i} — not cleared`);
+
+      html += `<div class="${cls}" title="${title}">
+        <span class="lv">Level ${i}</span>
+        <span class="${scoreCls}">${scoreTxt}</span>
+      </div>`;
+    }
+    els.levelGrid.innerHTML = html;
+    els.levelsSum.innerHTML = `<b>${cleared}</b> / ${MAX_LEVEL} cleared`;
+  }
+
+  function renderLog() {
+    const count = state.log.length;
+    if (!count) {
+      els.logCount.textContent = 'No moves yet';
+    } else {
+      const last = state.log[0];
+      els.logCount.textContent =
+        count + (count === 1 ? ' move' : ' moves') +
+        ' • last ' + PEG_NAMES[last.from] + ' → ' + PEG_NAMES[last.to];
+    }
+
+    if (!count) {
+      els.log.innerHTML = '<li class="empty">No moves yet</li>';
+      return;
+    }
+    els.log.innerHTML = state.log.slice(0, 40).map(e =>
+      `<li>
+         <span class="log-n">#${e.n}</span>
+         <span class="log-m">${PEG_NAMES[e.from]} → ${PEG_NAMES[e.to]}</span>
+         <span class="log-t">${e.dt.toFixed(1)}s</span>
+         <span class="log-p">+${e.pts}</span>
+       </li>`
+    ).join('');
+  }
+
+  function setLogOpen(open) {
+    logOpen = open;
+    els.logCard.classList.toggle('open', open);
+    els.logToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function renderUserChip() {
+    if (!currentUser) {
+      els.userName.textContent = 'Guest';
+      els.userAvatar.textContent = '?';
+      return;
+    }
+    els.userName.textContent = currentUser;
+    els.userAvatar.textContent = currentUser.charAt(0).toUpperCase();
+  }
+
+  /* ================= PEG FEEDBACK ================= */
+  function shakePeg(i) {
+    const el = els.pegs[i];
+    el.classList.remove('shake');
+    void el.offsetWidth;
+    el.classList.add('shake');
+    setTimeout(() => el.classList.remove('shake'), 460);
+  }
+  function correctPeg(i) {
+    const el = els.pegs[i];
+    el.classList.remove('correct');
+    void el.offsetWidth;
+    el.classList.add('correct');
+    setTimeout(() => el.classList.remove('correct'), 620);
+  }
+  function wrongPeg(i) {
+    const el = els.pegs[i];
+    el.classList.remove('wrong');
+    void el.offsetWidth;
+    el.classList.add('wrong');
+    setTimeout(() => el.classList.remove('wrong'), 480);
+  }
+
+  function flash(msg, type) {
+    els.toast.textContent = msg;
+    els.toast.className = 'toast show' + (type ? ' ' + type : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { els.toast.className = 'toast'; }, 2200);
+  }
+
+  function addModalBtn(label, cls, fn) {
+    const b = document.createElement('button');
+    b.className = 'btn ' + cls;
+    b.textContent = label;
+    b.addEventListener('click', fn);
+    els.modalActions.appendChild(b);
+  }
+
+  function openModal()  { els.overlay.classList.add('show'); }
+  function closeModal() { els.overlay.classList.remove('show'); }
+
+  function showWinModal(info) {
+    const { level, earned, movePts, speedBonus, perfectBonus, time, isBest } = info;
+    const last = level >= MAX_LEVEL;
+
+    els.modalIcon.textContent  = last ? '🏆' : '✨';
+    els.modalTitle.textContent = last ? 'All Levels Cleared!' : 'Level ' + level + ' Complete!';
+    els.modalSub.textContent   = last
+      ? 'You mastered every tower with perfect precision. Legendary.'
+      : `Solved in exactly ${optimal(level)} moves. Level ${level + 1} unlocked.`;
+
+    els.modalStats.innerHTML = `
+      <div><span>Move points</span><b>+${movePts.toLocaleString()}</b></div>
+      <div><span>Speed bonus</span><b>+${speedBonus.toLocaleString()}</b></div>
+      <div><span>Perfect bonus</span><b>+${perfectBonus.toLocaleString()}</b></div>
+      <div><span>Time</span><b>${fmtTime(time)}</b></div>
+      <div class="total"><span>Level total</span><b>+${earned.toLocaleString()}</b></div>
+      ${isBest ? '<div class="best">★ New best score for this level!</div>' : ''}
+    `;
+
+    els.modalActions.innerHTML = '';
+    if (last) {
+      addModalBtn('Play Again', 'primary', () => {
+        closeModal();
+        clearCurrentUserData();
+        newGame();
+        flash('Starting fresh from Level 1.', 'ok');
+      });
+    } else {
+      addModalBtn('Next Level →', 'primary', () => closeModal());
+    }
+    openModal();
+  }
+
+  function showFailModal(info) {
+    els.modalIcon.textContent  = '⚠️';
+    els.modalTitle.textContent = 'Not a Perfect Solve';
+    els.modalSub.textContent   =
+      `You solved it in ${info.moves} moves, but the optimal is ${info.opt}. ` +
+      `A level only counts when solved in exactly 2ⁿ − 1 moves.`;
+
+    els.modalStats.innerHTML = `
+      <div><span>Your moves</span><b class="bad">${info.moves}</b></div>
+      <div><span>Required moves</span><b>${info.opt}</b></div>
+    `;
+
+    els.modalActions.innerHTML = '';
+    addModalBtn('Retry Level', 'primary', () => {
+      closeModal();
+      startLevel(state.level);
+      flash('Level reset — go for a perfect run.');
+    });
+    addModalBtn('Learn this level', '', () => {
+      closeModal();
+      setLearnMode(true);
+    });
+    openModal();
+  }
+
+  /* ================= USERNAME GATE ================= */
+  function renderSavedUsers() {
+    const list = getUsers();
+    if (!list.length) {
+      els.savedUsersWrap.style.display = 'none';
+      return;
+    }
+    els.savedUsersWrap.style.display = '';
+    els.savedUsersList.innerHTML = '';
+    list.forEach(name => {
+      const b = document.createElement('button');
+      b.textContent = name;
+      b.addEventListener('click', () => beginSession(name));
+      els.savedUsersList.appendChild(b);
+    });
+  }
+
+  function openNameGate() {
+    stopTimer();
+    els.nameErr.textContent = '';
+    els.nameInput.value = '';
+    renderSavedUsers();
+    els.nameOverlay.classList.add('show');
+    setTimeout(() => els.nameInput.focus(), 60);
+  }
+  function closeNameGate() { els.nameOverlay.classList.remove('show'); }
+
+  function submitName() {
+    const name = normalizeName(els.nameInput.value);
+    if (!name) { els.nameErr.textContent = 'Please enter a name.'; return; }
+    if (name.length < 2) { els.nameErr.textContent = 'Name must be at least 2 characters.'; return; }
+    els.nameErr.textContent = '';
+    beginSession(name);
+  }
+
+  function beginSession(name) {
+    name = normalizeName(name);
+    if (!name) return;
+
+    if (currentUser && currentUser !== name) save();
+    stopTimer();
+
+    // Fresh session: learn mode is off by default
+    setLearnMode(false);
+    currentUser = name;
+    rememberUser(name);
+    renderUserChip();
+
+    state = defaultState();
+    const restored = loadForUser(name);
+
+    if (!restored) {
+      newGame();
+      flash('Welcome, ' + name + '! New game started.', 'ok');
+    } else {
+      flash('Welcome back, ' + name + '! Progress loaded.', 'ok');
+    }
+    closeNameGate();
+  }
+
+  function switchUser() {
+    if (currentUser) save();
+    stopTimer();
+    openNameGate();
+  }
+
+  /* ================= MEMORY (current user only) ================= */
+  function clearMemory() {
+    if (!currentUser) return;
+    const ok = confirm(
+      'Erase saved progress for "' + currentUser + '" only?\n\n' +
+      'Other players\' data will be untouched.'
+    );
+    if (!ok) return;
+    clearCurrentUserData();
+    closeModal();
+    newGame();
+    flash('Memory cleared for ' + currentUser + ' — starting Level 1.', 'ok');
+  }
+
+  /* ================= WIRING ================= */
+  els.pegs.forEach((pegEl, i) => {
+    pegEl.addEventListener('click', () => onPeg(i));
+  });
+
+  els.logToggle.addEventListener('click', () => setLogOpen(!logOpen));
+  els.btnLearn.addEventListener('click', toggleLearnMode);
+  els.btnHint.addEventListener('click', showHint);
+
+  document.addEventListener('keydown', e => {
+    if (els.nameOverlay.classList.contains('show')) {
+      if (e.key === 'Enter') submitName();
+      return;
+    }
+    if (e.key >= '1' && e.key <= '3') onPeg(Number(e.key) - 1);
+    if (e.key === 'h' || e.key === 'H') { if (learnMode) showHint(); }
+    if (e.key === 'Escape' && !els.overlay.classList.contains('show')) {
+      state.selected = null;
+      render();
+    }
+  });
+
+  $('btnReset').addEventListener('click', () => {
+    closeModal();
+    startLevel(state.level);
+    flash('Level ' + state.level + ' reset.');
+  });
+  $('btnClear').addEventListener('click', clearMemory);
+
+  els.nameBtn.addEventListener('click', submitName);
+  els.btnSwitch.addEventListener('click', switchUser);
+
+  window.addEventListener('beforeunload', save);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+
+  /* ================= BOOT ================= */
+  state = defaultState();
+  setLogOpen(false);
+  updateLearnUI();
+  render();
+  openNameGate();
+})();
+</script>
+</body>
+</html>
