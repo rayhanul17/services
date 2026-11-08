@@ -4,6 +4,9 @@
   const STORE_KEY = "messmate.v1";
   const APP_SETTINGS_KEY = "messmate.app-settings.v1";
   const DEFAULT_APP_NAME = "MessMate";
+  const SHEETS_TAB = "MessMate";
+  const SHEETS_CHUNK_SIZE = 30000;
+  const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets";
   const APP_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/x-icon", "image/vnd.microsoft.icon"];
   const CURRENCY_SYMBOL = "৳";
   const NAV = [
@@ -26,8 +29,13 @@
     lock: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
     download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>'
   };
-  const appSettings = { name: DEFAULT_APP_NAME, icon: "", favicon: "", fontScale: "1" };
-  const state = { mess: null, key: null, page: "dashboard", month: monthKey(new Date()), modal: null, toastTimer: null };
+  const appSettings = { name: DEFAULT_APP_NAME, icon: "", favicon: "", fontScale: "1", googleClientId: "", spreadsheetId: "", syncRows: {} };
+  const state = { mess: null, key: null, page: "dashboard", month: monthKey(new Date()), modal: null, toastTimer: null, skipNextSyncForMess: "" };
+  const syncStatus = { kind: "offline", label: "Local only", message: "Changes are saved on this device. Connect Google Sheets to enable online sync." };
+  let googleAccessToken = "";
+  let googleTokenClient = null;
+  let syncRunning = false;
+  let syncRequested = false;
   const root = document.getElementById("app");
   const toast = document.getElementById("toast");
 
@@ -58,21 +66,36 @@
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("App settings have an invalid format.");
     const name = parsed.name === undefined ? DEFAULT_APP_NAME : parsed.name;
     const fontScale = parsed.fontScale === undefined ? "1" : String(parsed.fontScale);
+    const googleClientId = parsed.googleClientId === undefined ? "" : parsed.googleClientId;
+    const spreadsheetId = parsed.spreadsheetId === undefined ? "" : parsed.spreadsheetId;
+    const syncRows = parsed.syncRows === undefined ? {} : parsed.syncRows;
     const imagePattern = /^data:image\/(?:png|jpeg|webp|x-icon|vnd\.microsoft\.icon);base64,[a-z0-9+/]+=*$/i;
     if (typeof name !== "string" || !name.trim() || name.trim().length > 40) throw new Error("App name in settings must be between 1 and 40 characters.");
-    if (!["0.9", "1", "1.1"].includes(fontScale)) throw new Error("Font size setting is invalid.");
+    if (!validFontScale(fontScale)) throw new Error("Font size setting is invalid.");
+    if (typeof googleClientId !== "string" || googleClientId.length > 300 || typeof spreadsheetId !== "string" || spreadsheetId.length > 200) throw new Error("Google Sheets settings are invalid.");
+    if (!syncRows || typeof syncRows !== "object" || Array.isArray(syncRows)) throw new Error("Google Sheets sync history is invalid.");
+    for (const [messId, syncRow] of Object.entries(syncRows)) {
+      if (!messId || !syncRow || !Number.isInteger(syncRow.startRow) || syncRow.startRow < 2 || !Number.isInteger(syncRow.rowCount) || syncRow.rowCount < 1 || typeof syncRow.spreadsheetId !== "string") {
+        throw new Error("A saved Google Sheets sync location is invalid.");
+      }
+    }
     for (const key of ["icon", "favicon"]) {
       if (parsed[key] !== undefined && parsed[key] !== "" && (typeof parsed[key] !== "string" || parsed[key].length > 400000 || !imagePattern.test(parsed[key]))) {
         throw new Error(`The saved ${key} image is invalid.`);
       }
     }
-    return { name: name.trim(), icon: parsed.icon || "", favicon: parsed.favicon || "", fontScale };
+    return { name: name.trim(), icon: parsed.icon || "", favicon: parsed.favicon || "", fontScale, googleClientId, spreadsheetId, syncRows };
   }
   function saveAppSettings(next) {
-    try { localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(next)); }
+    const merged = { ...appSettings, ...next };
+    try { localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(merged)); }
     catch (error) { throw new Error(`Could not save app settings. Browser storage may be full or disabled. ${error.message}`); }
-    Object.assign(appSettings, next);
+    Object.assign(appSettings, merged);
     applyAppSettings();
+  }
+  function validFontScale(value) {
+    const scale = Number(value);
+    return Number.isFinite(scale) && scale >= 0.8 && scale <= 1.3 && Math.abs(scale * 20 - Math.round(scale * 20)) < 0.000001;
   }
   function validDate(value) {
     if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -199,6 +222,251 @@
     entry.iv = encrypted.iv;
     entry.payload = encrypted.payload;
     saveIndex(index);
+    setSyncStatus("pending", "Syncing changes to Google Sheets…");
+    void syncCurrentMess();
+  }
+  function setSyncStatus(kind, message) {
+    syncStatus.kind = kind;
+    syncStatus.label = kind === "online" ? "Online" : kind === "pending" ? "Syncing" : kind === "offline" ? "Offline" : "Local only";
+    syncStatus.message = message;
+    const indicator = document.getElementById("sync-indicator");
+    if (indicator) {
+      indicator.className = `sync-indicator sync-${kind}`;
+      indicator.title = message;
+      indicator.setAttribute("aria-label", `Google Sheets sync: ${syncStatus.label}. ${message}`);
+      indicator.querySelector(".sync-label").textContent = syncStatus.label;
+    }
+    const detail = document.getElementById("sync-status-detail");
+    if (detail) detail.textContent = message;
+  }
+  function sheetsApiUrl(range, method) {
+    const sheetId = encodeURIComponent(appSettings.spreadsheetId);
+    const encodedRange = encodeURIComponent(range);
+    const suffix = method === "append" ? ":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS" : "?valueInputOption=RAW";
+    return `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodedRange}${suffix}`;
+  }
+  async function sheetsRequest(url, method, values) {
+    const response = await fetch(url, {
+      method,
+      headers: { Authorization: `Bearer ${googleAccessToken}`, "Content-Type": "application/json" },
+      body: values ? JSON.stringify({ majorDimension: "ROWS", values }) : undefined
+    });
+    let result;
+    try { result = await response.json(); }
+    catch (error) { throw new Error(`Google Sheets returned an unreadable response. ${error.message}`); }
+    if (!response.ok) {
+      if (response.status === 401) googleAccessToken = "";
+      throw new Error(result?.error?.message || `Google Sheets rejected the update (HTTP ${response.status}).`);
+    }
+    return result;
+  }
+  async function ensureGoogleAccessToken() {
+    if (googleAccessToken) return;
+    if (!navigator.onLine) throw new Error("You are offline. Connect to the internet to access Google Sheets.");
+    if (!window.google?.accounts?.oauth2) throw new Error("Google sign-in could not load. Check your internet connection and reload the app.");
+    const tokenResponse = await new Promise((resolve, reject) => {
+      googleTokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: appSettings.googleClientId,
+        scope: SHEETS_SCOPE,
+        callback: response => {
+          if (response.error) {
+            reject(new Error(response.error_description || `Google sign-in failed: ${response.error}`));
+            return;
+          }
+          googleAccessToken = response.access_token;
+          resolve(response);
+        },
+        error_callback: error => reject(new Error(error.message || "Google sign-in was blocked or failed."))
+      });
+      googleTokenClient.requestAccessToken({ prompt: "" });
+    });
+    if (!tokenResponse?.access_token) throw new Error("Google did not return an access token.");
+  }
+  async function readSheetBackups() {
+    const range = encodeURIComponent(`${SHEETS_TAB}!A2:H`);
+    const response = await sheetsRequest(
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(appSettings.spreadsheetId)}/values/${range}`,
+      "GET"
+    );
+    if (response?.values !== undefined && !Array.isArray(response.values)) throw new Error("The Google Sheet backup data has an invalid format.");
+    const grouped = new Map();
+    (response.values || []).forEach((row, index) => {
+      if (!Array.isArray(row) || row.length < 8) return;
+      const [messId, chunkNumber, totalChunks, name, updatedAt, salt, iv, payload] = row;
+      const chunk = Number(chunkNumber);
+      const chunks = Number(totalChunks);
+      if (typeof messId !== "string" || !messId || typeof name !== "string" || !name.trim() || name.length > 60 ||
+          !Number.isInteger(chunk) || chunk < 1 || !Number.isInteger(chunks) || chunks < 1 || chunks > 10000 || chunk > chunks ||
+          typeof updatedAt !== "string" || !Number.isFinite(Date.parse(updatedAt)) ||
+          typeof salt !== "string" || typeof iv !== "string" || typeof payload !== "string") return;
+      const key = `${messId}|${updatedAt}|${salt}|${iv}|${chunks}`;
+      if (!grouped.has(key)) grouped.set(key, { id: messId, name: name.trim(), updatedAt, salt, iv, totalChunks: chunks, parts: new Map(), positions: new Map(), startRow: index + 2 });
+      const backup = grouped.get(key);
+      if (backup.name !== name.trim() || backup.parts.has(chunk)) return;
+      backup.parts.set(chunk, payload);
+      backup.positions.set(chunk, index + 2);
+    });
+    return [...grouped.values()].filter(item => item.parts.size === item.totalChunks &&
+      Array.from({ length: item.totalChunks }, (_, index) => item.positions.get(index + 1) === item.startRow + index).every(Boolean))
+      .map(item => ({
+        id: item.id,
+        name: item.name,
+        updatedAt: item.updatedAt,
+        salt: item.salt,
+        iv: item.iv,
+        payload: Array.from({ length: item.totalChunks }, (_, index) => item.parts.get(index + 1)).join(""),
+        startRow: item.startRow,
+        rowCount: item.totalChunks,
+        spreadsheetId: appSettings.spreadsheetId
+      }))
+      .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+  }
+  function showRestoreResults(backups) {
+    const target = document.getElementById("restore-results");
+    if (!target) return;
+    if (!backups.length) {
+      target.innerHTML = `<p class="sync-form-error">No complete MessMate backups were found in this spreadsheet. Check that the tab is named MessMate and contains the expected rows.</p>`;
+      return;
+    }
+    target.innerHTML = `<h2>Available Backups</h2><p>Select a snapshot to copy into this device. Existing local records will not be overwritten. You will unlock it with the original mess password.</p><div class="restore-list">${backups.map((backup, index) => `<button class="restore-item" type="button" data-action="restore-sheet-backup" data-index="${index}"><strong>${escapeHtml(backup.name)}</strong><span>${escapeHtml(new Date(backup.updatedAt).toLocaleString())}</span><small>Encrypted snapshot · ${backup.rowCount} chunk${backup.rowCount === 1 ? "" : "s"}</small></button>`).join("")}</div>`;
+  }
+  let availableBackups = [];
+  async function findSheetBackups(form) {
+    const values = new FormData(form);
+    const clientId = String(values.get("google-client-id") || "").trim();
+    let spreadsheetId = String(values.get("spreadsheet-id") || "").trim();
+    const match = spreadsheetId.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if (match) spreadsheetId = match[1];
+    if (!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(clientId) || !/^[a-zA-Z0-9_-]{20,}$/.test(spreadsheetId)) {
+      throw new Error("Enter a valid Google OAuth client ID and spreadsheet ID or spreadsheet URL.");
+    }
+    saveAppSettings({ googleClientId: clientId, spreadsheetId });
+    await ensureGoogleAccessToken();
+    availableBackups = await readSheetBackups();
+    showRestoreResults(availableBackups);
+  }
+  function restoreSheetBackup(indexValue) {
+    const backup = availableBackups[Number(indexValue)];
+    if (!backup) throw new Error("Choose a backup from the current Google Sheet results.");
+    const entry = { id: backup.id, name: backup.name, salt: backup.salt, iv: backup.iv, payload: backup.payload };
+    const localIndex = getIndex();
+    const sameMess = localIndex.find(item => item.id === entry.id);
+    if (sameMess) {
+      throw new Error("This mess is already saved on this device. Unlock it instead; restoring will not overwrite local records.");
+    }
+    if (localIndex.some(item => item.name.trim().toLocaleLowerCase() === entry.name.toLocaleLowerCase())) {
+      throw new Error("A different local mess already uses this name. Rename or remove that mess before restoring.");
+    }
+    localIndex.push(entry);
+    saveIndex(localIndex);
+    state.skipNextSyncForMess = entry.id;
+    availableBackups = [];
+    renderAuth("choose");
+    showToast(`Encrypted backup for ${entry.name} restored. Unlock it with the original mess password.`);
+  }
+  async function uploadEncryptedMess(entry) {
+    const chunks = [];
+    for (let offset = 0; offset < entry.payload.length; offset += SHEETS_CHUNK_SIZE) {
+      chunks.push(entry.payload.slice(offset, offset + SHEETS_CHUNK_SIZE));
+    }
+    if (!chunks.length) chunks.push("");
+    const updatedAt = new Date().toISOString();
+    const rows = chunks.map((chunk, index) => [
+      entry.id, index + 1, chunks.length, entry.name, updatedAt, entry.salt, entry.iv, chunk
+    ]);
+    const previous = appSettings.syncRows[entry.id];
+    if (previous?.spreadsheetId === appSettings.spreadsheetId) {
+      const endRow = previous.startRow + Math.max(previous.rowCount, rows.length) - 1;
+      while (rows.length < previous.rowCount) rows.push(["", "", "", "", "", "", "", ""]);
+      await sheetsRequest(
+        sheetsApiUrl(`${SHEETS_TAB}!A${previous.startRow}:H${endRow}`, "update"),
+        "PUT",
+        rows
+      );
+      saveAppSettings({
+        syncRows: { ...appSettings.syncRows, [entry.id]: { startRow: previous.startRow, rowCount: chunks.length, spreadsheetId: appSettings.spreadsheetId } }
+      });
+      return;
+    }
+    const result = await sheetsRequest(sheetsApiUrl(`${SHEETS_TAB}!A:H`, "append"), "POST", rows);
+    const updatedRange = result?.updates?.updatedRange || "";
+    const match = updatedRange.match(/!A(\d+):H(\d+)$/);
+    if (!match) throw new Error("Google Sheets accepted the upload but did not return its saved row range.");
+    saveAppSettings({
+      syncRows: { ...appSettings.syncRows, [entry.id]: { startRow: Number(match[1]), rowCount: chunks.length, spreadsheetId: appSettings.spreadsheetId } }
+    });
+  }
+  async function syncCurrentMess() {
+    if (!state.mess) return;
+    if (syncRunning) { syncRequested = true; return; }
+    syncRunning = true;
+    try {
+      do {
+        syncRequested = false;
+        if (!appSettings.googleClientId || !appSettings.spreadsheetId) {
+          setSyncStatus("local", "Changes are saved on this device only. Add your Google settings to enable sync.");
+          return;
+        }
+        if (!navigator.onLine) {
+          setSyncStatus("offline", "You are offline. Changes are saved locally and will sync when connected.");
+          return;
+        }
+        if (!googleAccessToken) {
+          setSyncStatus("offline", "Google sign-in is required. Reconnect in Mess settings to sync pending changes.");
+          return;
+        }
+        const messId = state.mess.id;
+        const entry = getIndex().find(item => item.id === messId);
+        if (!entry) throw new Error("This mess is no longer in this browser's saved list.");
+        setSyncStatus("pending", `Uploading encrypted data for ${entry.name}…`);
+        await uploadEncryptedMess(entry);
+        setSyncStatus("online", `Google confirmed the latest save for ${entry.name} at ${new Date().toLocaleTimeString()}.`);
+      } while (syncRequested);
+    } catch (error) {
+      setSyncStatus("offline", `Online sync failed; your local save is safe. ${error.message || "Try reconnecting in Mess settings."}`);
+    } finally {
+      syncRunning = false;
+      if (syncRequested) void syncCurrentMess();
+    }
+  }
+  async function connectGoogleSheets() {
+    try {
+      if (!appSettings.googleClientId || !appSettings.spreadsheetId) throw new Error("Save a Google OAuth client ID and spreadsheet ID in Mess settings first.");
+      await ensureGoogleAccessToken();
+      await syncCurrentMess();
+      if (syncStatus.kind !== "online") throw new Error(syncStatus.message);
+      renderApp();
+      showToast("Google Sheets connected. Your encrypted mess data is synced.");
+    } catch (error) {
+      setSyncStatus("offline", error.message || "Google sign-in or sync failed. Your local save is safe.");
+      throw error;
+    }
+  }
+  function saveSyncSettings(form) {
+    const clientId = String(new FormData(form).get("google-client-id") || "").trim();
+    let spreadsheetId = String(new FormData(form).get("spreadsheet-id") || "").trim();
+    const match = spreadsheetId.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if (match) spreadsheetId = match[1];
+    if ((clientId && !/^[\w.-]+\.apps\.googleusercontent\.com$/.test(clientId)) || (spreadsheetId && !/^[a-zA-Z0-9_-]{20,}$/.test(spreadsheetId))) {
+      throw new Error("Enter a valid Google OAuth client ID and spreadsheet ID or spreadsheet URL.");
+    }
+    if (Boolean(clientId) !== Boolean(spreadsheetId)) throw new Error("Enter both the Google OAuth client ID and spreadsheet ID.");
+    const changed = clientId !== appSettings.googleClientId || spreadsheetId !== appSettings.spreadsheetId;
+    saveAppSettings({ googleClientId: clientId, spreadsheetId });
+    if (changed) googleAccessToken = "";
+    setSyncStatus("local", clientId ? "Settings saved. Connect your Google Account to start syncing." : "Google Sheets sync is disabled. Your data remains local.");
+    renderApp();
+    showToast(clientId ? "Google Sheets settings saved." : "Google Sheets sync disconnected.");
+  }
+  async function syncNow() {
+    if (!googleAccessToken) {
+      await connectGoogleSheets();
+      return;
+    }
+    await syncCurrentMess();
+    if (syncStatus.kind !== "online") throw new Error(syncStatus.message);
+    renderApp();
+    showToast("Google Sheets is up to date.");
   }
   function showToast(message) {
     toast.textContent = message;
@@ -267,7 +535,7 @@
   function header() {
     return `<header class="topbar">
       <div class="breadcrumb"><span>${escapeHtml(appSettings.name)}&nbsp; / &nbsp;</span><strong>${escapeHtml(NAV.find(item => item.id === state.page)?.label || "Settings")}</strong></div>
-      <div class="top-actions"><div class="month-filter">${monthSelect()}<small id="month-filter-hint">Month filter only · saved entries stay intact</small></div><button class="icon-button" data-action="settings" aria-label="Mess Settings" title="Mess Settings">${icon("lock", 16)}</button></div>
+      <div class="top-actions"><div class="month-filter">${monthSelect()}<small id="month-filter-hint">Month filter only · saved entries stay intact</small></div><span id="sync-indicator" class="sync-indicator sync-${syncStatus.kind}" role="status" title="${escapeHtml(syncStatus.message)}" aria-label="Google Sheets sync: ${escapeHtml(syncStatus.label)}. ${escapeHtml(syncStatus.message)}"><span class="sync-dot"></span><span class="sync-label">${escapeHtml(syncStatus.label)}</span></span><button class="icon-button" data-action="settings" aria-label="Mess Settings" title="Mess Settings">${icon("lock", 16)}</button></div>
     </header>`;
   }
   function sidebar() {
@@ -458,6 +726,18 @@
     return `${pageHeading("Mess settings", "Manage this mess and keep a safe copy of your records.")}
       <section class="grid settings-grid">
         <article class="card settings-card"><h2>App Appearance</h2><p>Change the app name, icon, favicon, and text size on this device.</p><button class="secondary-button" data-action="app-appearance">Customize Appearance</button></article>
+        <article class="card settings-card"><h2>Google Sheets Sync</h2><p>Keep this device's encrypted mess data backed up to your Google Sheet. Normal sync uploads only; the app reads the sheet only when you explicitly choose Restore from Google Sheets.</p>
+          <form id="sync-settings-form" class="sync-settings-form">
+            <div class="field"><label for="google-client-id">Google OAuth Client ID</label><input id="google-client-id" name="google-client-id" type="text" value="${escapeHtml(appSettings.googleClientId)}" placeholder="Your Google OAuth client ID" autocomplete="off"></div>
+            <div class="field"><label for="spreadsheet-id">Google Spreadsheet ID or URL</label><input id="spreadsheet-id" name="spreadsheet-id" type="text" value="${escapeHtml(appSettings.spreadsheetId)}" placeholder="Paste the Google Sheet URL or ID" autocomplete="off"></div>
+            <div class="sync-form-error" id="sync-config-error" role="alert"></div>
+            <div class="settings-actions"><button class="secondary-button" type="submit">Save Google Settings</button><button class="primary-button" type="button" data-action="connect-google-sheets">Connect Google Account</button><button class="secondary-button" type="button" data-action="sync-now">Sync Now</button></div>
+          </form>
+          <p class="sync-status-detail" id="sync-status-detail">${escapeHtml(syncStatus.message)}</p>
+          <div class="notice">Setup: Create a Google Cloud project, enable the Google Sheets API, and create an OAuth Client ID for a Web application. Add this app's HTTPS website origin under Authorized JavaScript origins. Create a Google Sheet tab named <strong>MessMate</strong> and put these headers in cells A1:H1, one per column: <code>Mess ID, Chunk, Chunks, Mess Name, Updated At, Salt, IV, Encrypted Payload</code>. Paste the OAuth Client ID and spreadsheet URL above, save, then connect with a Google account that can edit the sheet. Records are encrypted and your mess password is not sent to Google; mess name and sync metadata remain visible. For local development, open through localhost rather than file://.</div>
+          <div class="settings-actions section-spacer"><button class="secondary-button" type="button" data-action="restore-from-sheets">Restore from Google Sheets</button></div>
+          <div class="notice">A green status means Google confirmed the latest upload. If offline or an upload fails, changes remain saved locally and the status is red until you reconnect and sync. Restoration is a deliberate copy into local storage, not a merge: existing local data is never overwritten. Another browser that has not synced a mess before may upload a separate copy.</div>
+        </article>
         <article class="card settings-card"><h2>${escapeHtml(state.mess.name)}</h2><p>This mess is stored separately from every other mess in this browser. Your records are encrypted with the password you set up.</p><div class="settings-actions"><button class="secondary-button" data-action="switch-mess">Switch mess</button><button class="secondary-button" data-action="new-mess">Create another mess</button><button class="secondary-button" data-action="export-backup">${icon("download", 14)} Download data backup (.json)</button><button class="secondary-button" data-action="import-backup">Import data backup (.json)</button></div><div class="notice">To move your mess to another computer, download this encrypted JSON backup and copy it using a USB drive or other file transfer. On the other computer, open ${escapeHtml(appSettings.name)}, choose Import data backup, and then unlock the restored mess with the same password. The backup file is encrypted; keep your password safe.</div></article>
         <article class="card settings-card danger-zone"><h2>Clear this mess</h2><p>Remove all meal, expense, and deposit records from this mess. Your member list will be kept so you can start fresh.</p><button class="danger-button" data-action="clear-data">Clear all activity</button><div class="notice">This action cannot be undone. Export a backup first if you may need these records later.</div></article>
         <article class="card settings-card danger-zone"><h2>Delete this mess</h2><p>Permanently delete this mess and all of its encrypted records from this browser.</p><button class="danger-button" data-action="delete-mess">Delete mess permanently</button></article>
@@ -479,10 +759,12 @@
     if (mode === "unlock") {
       const chosen = index[0];
       root.innerHTML = `<main class="auth-wrap"><section class="auth-card">${authBrand()}<h1>Unlock your mess</h1><form class="auth-form" id="unlock-form"><div class="field"><label for="unlock-name">Mess name</label><select id="unlock-name" required>${index.map(item => `<option value="${escapeHtml(item.id)}" ${chosen.id === item.id ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}</select></div><div class="field"><label for="unlock-password">Password</label><input id="unlock-password" type="password" autocomplete="current-password" required></div><div class="auth-error" id="auth-error">${escapeHtml(message)}</div><button class="primary-button" type="submit">Unlock mess</button></form><button class="auth-link" data-action="new-mess">Create a new mess</button></section></main>`;
+    } else if (mode === "restore") {
+      root.innerHTML = `<main class="auth-wrap"><section class="auth-card">${authBrand()}<h1>Restore a mess</h1><p>Find an encrypted snapshot in your Google Sheet and copy it to this device. You will need the original mess password to unlock it.</p><form class="auth-form" id="restore-search-form"><div class="field"><label for="restore-google-client-id">Google OAuth Client ID</label><input id="restore-google-client-id" name="google-client-id" value="${escapeHtml(appSettings.googleClientId)}" autocomplete="off" required></div><div class="field"><label for="restore-spreadsheet-id">Google Spreadsheet ID or URL</label><input id="restore-spreadsheet-id" name="spreadsheet-id" value="${escapeHtml(appSettings.spreadsheetId)}" autocomplete="off" required></div><div class="auth-error" id="restore-error">${escapeHtml(message)}</div><button class="primary-button" type="submit">Find Google Sheet Backups</button></form><div id="restore-results"></div><button class="auth-link" data-action="choose-mess">← Back</button></section></main>`;
     } else if (mode === "create") {
-      root.innerHTML = `<main class="auth-wrap"><section class="auth-card">${authBrand()}<h1>Create your mess</h1><p>Each mess has its own password and separate records.</p><form class="auth-form" id="create-form"><div class="field"><label for="mess-name">Mess name</label><input id="mess-name" name="name" maxlength="60" placeholder="e.g. Green House" autocomplete="organization" required></div><div class="field"><label for="initial-members">Starter members <span class="field-hint">(optional, one per line or comma-separated)</span></label><textarea id="initial-members" name="members" placeholder="Fahim, Rayhan, Nishad"></textarea></div><div class="field"><label for="create-password">Create a password</label><input id="create-password" name="password" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters" required><span class="field-hint">Password must be at least 8 characters.</span></div><div class="field"><label for="confirm-password">Confirm password</label><input id="confirm-password" name="confirm" type="password" minlength="8" autocomplete="new-password" required></div><div class="auth-error" id="auth-error">${escapeHtml(message)}</div><button class="primary-button" type="submit">Create mess</button></form>${index.length ? `<button class="auth-link" data-action="choose-mess">← Back to existing messes</button>` : ""}</section></main>`;
+      root.innerHTML = `<main class="auth-wrap"><section class="auth-card">${authBrand()}<h1>Create your mess</h1><p>Each mess has its own password and separate records.</p><form class="auth-form" id="create-form"><div class="field"><label for="mess-name">Mess name</label><input id="mess-name" name="name" maxlength="60" placeholder="e.g. Green House" autocomplete="organization" required></div><div class="field"><label for="initial-members">Starter members <span class="field-hint">(optional, one per line or comma-separated)</span></label><textarea id="initial-members" name="members" placeholder="Fahim, Rayhan, Nishad"></textarea></div><div class="field"><label for="create-password">Create a password</label><input id="create-password" name="password" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters" required><span class="field-hint">Password must be at least 8 characters.</span></div><div class="field"><label for="confirm-password">Confirm password</label><input id="confirm-password" name="confirm" type="password" minlength="8" autocomplete="new-password" required></div><div class="auth-error" id="auth-error">${escapeHtml(message)}</div><button class="primary-button" type="submit">Create mess</button></form><button class="auth-link" data-action="restore-from-sheets">Restore from Google Sheets</button>${index.length ? `<button class="auth-link" data-action="choose-mess">← Back to existing messes</button>` : ""}</section></main>`;
     } else {
-      root.innerHTML = `<main class="auth-wrap"><section class="auth-card">${authBrand()}<h1>Your messes</h1><p>Select a mess or create another.</p><div class="auth-form">${index.map(item => `<button class="mess-switcher" data-action="pick-mess" data-id="${escapeHtml(item.id)}"><span class="mess-avatar">${escapeHtml(initials(item.name))}</span><span class="mess-switcher-copy"><small>Mess</small><strong>${escapeHtml(item.name)}</strong></span><span aria-hidden="true">→</span></button>`).join("")}<button class="primary-button" data-action="new-mess">＋ Create a new mess</button></div></section></main>`;
+      root.innerHTML = `<main class="auth-wrap"><section class="auth-card">${authBrand()}<h1>Your messes</h1><p>Select a mess or create another.</p><div class="auth-form">${index.map(item => `<button class="mess-switcher" data-action="pick-mess" data-id="${escapeHtml(item.id)}"><span class="mess-avatar">${escapeHtml(initials(item.name))}</span><span class="mess-switcher-copy"><small>Mess</small><strong>${escapeHtml(item.name)}</strong></span><span aria-hidden="true">→</span></button>`).join("")}<button class="primary-button" data-action="new-mess">＋ Create a new mess</button><button class="auth-link" data-action="restore-from-sheets">Restore from Google Sheets</button></div></section></main>`;
     }
   }
   function showError(idSelector, message) {
@@ -516,6 +798,8 @@
     saveIndex(index);
     state.mess = mess; state.key = key; state.page = "dashboard"; state.month = monthKey(new Date());
     renderApp();
+    setSyncStatus("pending", "New mess saved locally. Syncing its encrypted data to Google Sheets…");
+    void syncCurrentMess();
   }
   async function unlockMess(form) {
     const index = getIndex();
@@ -532,6 +816,13 @@
     }
     state.key = key; state.page = "dashboard"; state.month = monthKey(new Date());
     renderApp();
+    if (state.skipNextSyncForMess === entry.id) {
+      state.skipNextSyncForMess = "";
+      setSyncStatus("online", "Restored snapshot unlocked. It is saved locally and was not uploaded again.");
+    } else if (appSettings.googleClientId && appSettings.spreadsheetId) {
+      setSyncStatus("pending", "Checking Google Sheets sync for this mess…");
+      void syncCurrentMess();
+    }
   }
   function openModal(title, description, body, onSubmit, options = {}) {
     const target = document.getElementById("modal-root");
@@ -541,6 +832,7 @@
     if (first) first.focus();
   }
   function closeModal() {
+    if (state.modal?.fontScalePreview && !state.modal.keepFontScalePreview) applyAppSettings();
     state.modal = null;
     const target = document.getElementById("modal-root");
     if (target) target.innerHTML = "";
@@ -632,13 +924,13 @@
     const body = `<div class="field"><label for="app-name">App name</label><input id="app-name" name="name" maxlength="40" value="${escapeHtml(appSettings.name)}" required></div>
       <div class="field section-spacer"><label for="app-icon-file">App icon</label><input id="app-icon-file" name="icon" type="file" accept="image/png,image/jpeg,image/webp"><span class="field-hint">PNG, JPEG, or WebP · up to 256 KB</span><label class="check-option"><input name="resetIcon" type="checkbox"> Use the default icon</label></div>
       <div class="field section-spacer"><label for="app-favicon-file">Favicon</label><input id="app-favicon-file" name="favicon" type="file" accept="image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon"><span class="field-hint">PNG, JPEG, WebP, or ICO · up to 256 KB</span><label class="check-option"><input name="resetFavicon" type="checkbox"> Use the default favicon</label></div>
-      <div class="field section-spacer"><label for="app-font-scale">Text size</label><select id="app-font-scale" name="fontScale"><option value="0.9" ${appSettings.fontScale === "0.9" ? "selected" : ""}>Small</option><option value="1" ${appSettings.fontScale === "1" ? "selected" : ""}>Default</option><option value="1.1" ${appSettings.fontScale === "1.1" ? "selected" : ""}>Large</option></select></div>`;
+      <div class="field section-spacer"><label for="app-font-scale">Text size</label><div class="font-scale-control"><input id="app-font-scale" name="fontScale" type="range" min="80" max="130" step="5" value="${Math.round(Number(appSettings.fontScale) * 100)}" aria-describedby="font-scale-value"><output id="font-scale-value">${Math.round(Number(appSettings.fontScale) * 100)}%</output></div><span class="field-hint">Drag to preview from 80% to 130%. Changes apply as you move the slider.</span></div>`;
     openModal("App Appearance", "Personalize the app on this device.", body, async form => {
       const formData = new FormData(form);
       const name = String(formData.get("name") || "").trim();
-      const fontScale = String(formData.get("fontScale") || "");
+      const fontScale = (Number(formData.get("fontScale")) / 100).toFixed(2);
       if (!name || name.length > 40) throw new Error("Enter an app name between 1 and 40 characters.");
-      if (!["0.9", "1", "1.1"].includes(fontScale)) throw new Error("Choose a valid text size.");
+      if (!validFontScale(fontScale)) throw new Error("Choose a text size between 80% and 130%.");
       const iconFile = form.querySelector("#app-icon-file").files[0];
       const faviconFile = form.querySelector("#app-favicon-file").files[0];
       if (formData.has("resetIcon") && iconFile) throw new Error("Choose either a new app icon or the default icon.");
@@ -650,10 +942,12 @@
         fontScale
       };
       saveAppSettings(next);
+      state.modal.keepFontScalePreview = true;
       closeModal();
       renderApp();
       showToast("App appearance updated.");
     }, { wide: true, submit: "Save Appearance" });
+    state.modal.fontScalePreview = true;
   }
   function confirmAction(title, description, label, action, options = {}) {
     const hint = options.hint ? `<div class="field section-spacer"><label for="confirm-text">${escapeHtml(options.hint)}</label><input id="confirm-text" name="confirmText" autocomplete="off" required></div>` : "";
@@ -725,6 +1019,10 @@
       case "pick-mess": switchToMess(recordId); break;
       case "switch-mess": renderAuth("choose"); break;
       case "settings": state.page = "settings"; renderApp(); break;
+      case "connect-google-sheets": await connectGoogleSheets(); break;
+      case "sync-now": await syncNow(); break;
+      case "restore-from-sheets": availableBackups = []; renderAuth("restore"); break;
+      case "restore-sheet-backup": restoreSheetBackup(target.dataset.index); break;
       case "app-appearance": openAppAppearance(); break;
       case "print-report": openReport(); break;
       case "quick-add": openQuickAdd(); break;
@@ -798,6 +1096,13 @@
       document.querySelectorAll("[data-expense-kind]").forEach(row => row.classList.toggle("hidden", selected !== "all" && row.dataset.expenseKind !== selected));
     }
   });
+  root.addEventListener("input", event => {
+    if (event.target.id !== "app-font-scale") return;
+    const scale = Number(event.target.value) / 100;
+    document.documentElement.style.fontSize = `${16 * scale}px`;
+    const output = document.getElementById("font-scale-value");
+    if (output) output.textContent = `${event.target.value}%`;
+  });
   root.addEventListener("submit", async event => {
     const form = event.target;
     if (form.id === "create-form") {
@@ -816,13 +1121,43 @@
       finally { if (button.isConnected) button.disabled = false; }
     } else if (form.id === "modal-form") {
       event.preventDefault(); await submitModal(form);
+    } else if (form.id === "sync-settings-form") {
+      event.preventDefault();
+      const error = document.getElementById("sync-config-error");
+      error.textContent = "";
+      try { saveSyncSettings(form); }
+      catch (saveError) {
+        error.textContent = saveError.message || "Could not save Google Sheets settings.";
+      }
+    } else if (form.id === "restore-search-form") {
+      event.preventDefault();
+      const error = document.getElementById("restore-error");
+      const button = form.querySelector('[type="submit"]');
+      error.textContent = "";
+      button.disabled = true;
+      try { await findSheetBackups(form); }
+      catch (searchError) { error.textContent = searchError.message || "Could not read backups from Google Sheets."; }
+      finally { if (button.isConnected) button.disabled = false; }
     }
+  });
+  window.addEventListener("online", () => {
+    if (!state.mess) return;
+    setSyncStatus("pending", "Internet connection restored. Retrying Google Sheets sync…");
+    void syncCurrentMess();
+  });
+  window.addEventListener("offline", () => {
+    if (state.mess) setSyncStatus("offline", "You are offline. Changes are saved locally and will sync when connected.");
   });
   function init() {
     try {
       if (!window.crypto?.subtle) throw new Error("This browser does not support secure local encryption. Please use a current version of Chrome, Edge, Firefox or Safari.");
       Object.assign(appSettings, readAppSettings());
       applyAppSettings();
+      if (appSettings.googleClientId && appSettings.spreadsheetId) {
+        setSyncStatus("offline", navigator.onLine ? "Sign in to Google to verify online sync." : "You are offline. Changes are saved locally.");
+      } else {
+        setSyncStatus("local", "Changes are saved on this device only. Connect Google Sheets to enable online sync.");
+      }
       const index = getIndex();
       renderAuth(index.length ? "choose" : "create");
     } catch (error) {

@@ -59,6 +59,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .month-filter { align-items: flex-end; display: flex; flex-direction: column; gap: 3px; }
 .month-filter small { color: var(--muted); font-size: 0.5625rem; }
 .month-select { background: #fff; border: 1px solid var(--line); border-radius: 9px; color: #57625c; font-size: 0.75rem; min-height: 37px; padding: 8px 11px; }
+.sync-indicator { align-items: center; border-radius: 20px; display: inline-flex; flex: 0 0 auto; font-size: 0.625rem; font-weight: 700; gap: 6px; min-height: 30px; padding: 0 9px; }
+.sync-dot { background: currentColor; border-radius: 50%; height: 7px; width: 7px; }
+.sync-online { background: var(--green-soft); color: var(--green-dark); }
+.sync-offline { background: var(--red-soft); color: var(--red); }
+.sync-pending { background: #fbf0e2; color: #9c622a; }
+.sync-local { background: var(--red-soft); color: var(--red); }
 .icon-button { align-items: center; background: #fff; border: 1px solid var(--line); border-radius: 9px; color: #53605a; display: inline-flex; height: 37px; justify-content: center; width: 38px; }
 .content { margin: 0 auto; max-width: 1180px; }
 .page-heading { align-items: flex-end; display: flex; justify-content: space-between; margin: 2px 0 23px; }
@@ -161,6 +167,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .settings-card h2 { font-size: 0.875rem; margin: 0 0 6px; }
 .settings-card p { color: var(--muted); font-size: 0.6875rem; line-height: 1.6; margin: 0 0 15px; }
 .settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sync-settings-form { display: grid; gap: 12px; }
+.sync-form-error:not(:empty) { background: var(--red-soft); border-radius: 7px; color: var(--red); font-size: 0.6875rem; line-height: 1.5; padding: 9px 10px; }
+.sync-status-detail { border-left: 3px solid var(--line); margin: 12px 0 0 !important; padding: 2px 0 2px 9px; }
+.settings-card code { background: #e9ede8; border-radius: 4px; font-size: .95em; padding: 2px 4px; }
+.restore-list { display: grid; gap: 8px; margin-top: 12px; }
+.restore-item { background: var(--surface-soft); border: 1px solid var(--line); border-radius: 9px; color: var(--ink); display: grid; gap: 4px; padding: 12px; text-align: left; }
+.restore-item:hover { border-color: #b8cdbd; }
+.restore-item strong { font-size: .75rem; }
+.restore-item span, .restore-item small { color: var(--muted); font-size: .625rem; }
+.font-scale-control { align-items: center; display: flex; gap: 12px; }
+.font-scale-control input { accent-color: var(--green); flex: 1; min-width: 0; }
+.font-scale-control output { color: var(--green-dark); font-size: .75rem; font-variant-numeric: tabular-nums; font-weight: 700; min-width: 42px; text-align: right; }
 .danger-zone { border-color: #f0dedb; }
 .form-grid { display: grid; gap: 13px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .field { display: grid; gap: 6px; }
@@ -222,6 +240,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .topbar .breadcrumb span { display: none; }
   .top-actions { gap: 6px; }
   .month-select { max-width: 142px; padding: 8px; }
+  .sync-indicator { font-size: 0; gap: 0; height: 30px; justify-content: center; padding: 0; width: 30px; }
+  .sync-dot { height: 9px; width: 9px; }
   .page-heading { align-items: flex-start; gap: 10px; }
   .heading-actions { flex-direction: column; }
   .page-heading h1 { font-size: 1.5625rem; }
