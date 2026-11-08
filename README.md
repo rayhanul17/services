@@ -7,6 +7,7 @@ Collection of independent, publicly-hosted utility tools. Each service lives in 
 - Index: [rayhanul17.github.io/services](https://rayhanul17.github.io/services/)
 - Tower of Hanoi: [rayhanul17.github.io/services/learn_th](https://rayhanul17.github.io/services/learn_th/)
 - Voucher: [rayhanul17.github.io/services/voucher](https://rayhanul17.github.io/services/voucher/)
+- MessMate: [rayhanul17.github.io/services/messmate](https://rayhanul17.github.io/services/messmate/)
 
 ## Adding a new service
 
@@ -22,4 +23,5 @@ Collection of independent, publicly-hosted utility tools. Each service lives in 
 |---------|-------------------------|-----------------------------------------------------|
 | Tower of Hanoi | [learn_th/](learn_th/) | Interactive Tower of Hanoi learning game and solver |
 | Voucher | [voucher/](voucher/)    | মেসার্স অর্পা কনস্ট্রাকশন site voucher generator    |
+| MessMate | [messmate/](messmate/) | Local-first mess management, settlements, and reports |
 <!-- markdownlint-enable MD060 -->
